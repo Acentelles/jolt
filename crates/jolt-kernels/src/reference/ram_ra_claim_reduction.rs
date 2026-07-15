@@ -19,8 +19,7 @@ use jolt_claims::protocols::jolt::{JoltDerivedId, RamRaClaimReductionPublic, Tra
 use jolt_field::Field;
 use jolt_poly::{BindingOrder, Polynomial};
 use jolt_verifier::stages::stage5::ram_ra_claim_reduction::RamRaClaimReduction;
-use jolt_witness::protocols::jolt_vm::JoltVmNamespace;
-use jolt_witness::WitnessProvider;
+use jolt_witness::JoltWitnessOracle;
 
 use super::views::{dense_view, eq_table};
 use crate::ram_ra_claim_reduction::RamRaClaimReductionProver;
@@ -34,7 +33,7 @@ impl<F: Field> RamRaClaimReductionProver<F> for ReferenceBackend {
         ram_log_k: usize,
         input_points: &RamRaClaimReductionInputClaims<Vec<F>>,
         challenges: &RamRaClaimReductionChallenges<F>,
-        witness: &dyn WitnessProvider<F, JoltVmNamespace>,
+        witness: &dyn JoltWitnessOracle<F>,
     ) -> Result<Box<dyn ProveSumcheck<F, Relation = RamRaClaimReduction<F>>>, KernelError<F>> {
         let cycles = 1usize << trace_dimensions.log_t();
         let addresses = 1usize << ram_log_k;

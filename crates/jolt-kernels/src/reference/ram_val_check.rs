@@ -21,8 +21,7 @@ use jolt_claims::protocols::jolt::{JoltDerivedId, RamValCheckPublic, TraceDimens
 use jolt_field::Field;
 use jolt_poly::{BindingOrder, LtPolynomial, Polynomial};
 use jolt_verifier::stages::stage4::ram_val_check::RamValCheck;
-use jolt_witness::protocols::jolt_vm::JoltVmNamespace;
-use jolt_witness::WitnessProvider;
+use jolt_witness::JoltWitnessOracle;
 
 use super::views::{dense_view, eq_table};
 use crate::ram_val_check::RamValCheckProver;
@@ -38,7 +37,7 @@ impl<F: Field> RamValCheckProver<F> for ReferenceBackend {
         r_address: &[F],
         r_cycle: &[F],
         challenges: &RamValCheckChallenges<F>,
-        witness: &dyn WitnessProvider<F, JoltVmNamespace>,
+        witness: &dyn JoltWitnessOracle<F>,
     ) -> Result<Box<dyn ProveSumcheck<F, Relation = RamValCheck<F>>>, KernelError<F>> {
         let cycles = 1usize << trace_dimensions.log_t();
         let addresses = 1usize << ram_log_k;
