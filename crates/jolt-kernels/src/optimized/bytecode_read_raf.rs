@@ -544,6 +544,71 @@ impl<F: JoltField> LazyFusedInc<F> {
 /// Stage-6b cycle phase: `PrepareKernel` front of the optimized kernel.
 pub struct OptimizedBytecodeReadRafCycle;
 
+impl OptimizedBytecodeReadRafCycle {
+    fn combined_table<F: JoltField>(points: &[Vec<F>], weights: &[F]) -> Vec<F> {
+        assert_eq!(points.len(), weights.len());
+        let variables = points[0].len();
+        let block_bits = (variables / 2).min(10);
+        let prefix_bits = variables - block_bits;
+        let block_len = 1usize << block_bits;
+        let len = 1usize << variables;
+        let factors: Vec<_> = points
+            .iter()
+            .zip(weights)
+            .map(|(point, weight)| {
+                (
+                    scaled_eq_table(&point[..prefix_bits], *weight),
+                    eq_table(&point[prefix_bits..]),
+                )
+            })
+            .collect();
+        let fill = |buffer: &mut Vec<F>, high: usize| {
+            for (value, low) in buffer.iter_mut().zip(&factors[0].1) {
+                *value = factors[0].0[high] * *low;
+            }
+            for (prefix, suffix) in &factors[1..] {
+                let scale = prefix[high];
+                for (value, low) in buffer.iter_mut().zip(suffix) {
+                    *value += scale * *low;
+                }
+            }
+        };
+        // Split equality tables keep each sum in a small worker buffer. Only
+        // the final combined table occupies the full cycle domain.
+        let mut combined = Vec::with_capacity(len);
+        #[cfg(feature = "parallel")]
+        combined.spare_capacity_mut()[..len]
+            .par_chunks_mut(block_len)
+            .enumerate()
+            .for_each_init(
+                || vec![F::zero(); block_len],
+                |buffer, (high, block)| {
+                    fill(buffer, high);
+                    for (slot, value) in block.iter_mut().zip(buffer.iter()) {
+                        let _ = slot.write(*value);
+                    }
+                },
+            );
+        #[cfg(not(feature = "parallel"))]
+        {
+            let mut buffer = vec![F::zero(); block_len];
+            for (high, block) in combined.spare_capacity_mut()[..len]
+                .chunks_mut(block_len)
+                .enumerate()
+            {
+                fill(&mut buffer, high);
+                for (slot, value) in block.iter_mut().zip(&buffer) {
+                    let _ = slot.write(*value);
+                }
+            }
+        }
+        // SAFETY: every slot below len was initialized by the completed walk.
+        // A panic leaves the vector length at zero; F is Copy and has no drop.
+        unsafe { combined.set_len(len) };
+        combined
+    }
+}
+
 impl<F: JoltField> PrepareKernel<F, BytecodeReadRafCycle<F>> for OptimizedBytecodeReadRafCycle {
     fn prepare(
         &self,
@@ -605,47 +670,27 @@ impl<F: JoltField> PrepareKernel<F, BytecodeReadRafCycle<F>> for OptimizedByteco
             }
         }
 
-        let mut combined = Polynomial::<F>::zeros(dimensions.log_t()).into_evals();
-        for (point, weight) in stage_cycle_points[..base_stages].iter().zip(stage_weights) {
-            let scaled = scaled_eq_table(point, weight);
-            #[cfg(feature = "parallel")]
-            combined
-                .par_iter_mut()
-                .zip(scaled.par_iter())
-                .for_each(|(acc, term)| *acc += *term);
-            #[cfg(not(feature = "parallel"))]
-            combined
-                .iter_mut()
-                .zip(scaled.iter())
-                .for_each(|(acc, term)| *acc += *term);
-        }
+        let mut combined = Self::combined_table(&stage_cycle_points[..base_stages], &stage_weights);
         let entry_scalar = eq_table(r_address)[relation.entry_bytecode_index()];
         combined[0] += gamma_powers[num_stages + 2] * entry_scalar;
 
         #[cfg(feature = "akita")]
         let fused_combined = {
             let store = stage_values[base_stages];
-            let mut combined = Polynomial::<F>::zeros(dimensions.log_t()).into_evals();
-            for stage in base_stages..num_stages {
-                let value = if stage < base_stages + 2 {
-                    store
-                } else {
-                    F::one() - store
-                };
-                let scaled =
-                    scaled_eq_table(&stage_cycle_points[stage], gamma_powers[stage] * value);
-                #[cfg(feature = "parallel")]
-                combined
-                    .par_iter_mut()
-                    .zip(scaled.par_iter())
-                    .for_each(|(acc, term)| *acc += *term);
-                #[cfg(not(feature = "parallel"))]
-                combined
-                    .iter_mut()
-                    .zip(scaled.iter())
-                    .for_each(|(acc, term)| *acc += *term);
-            }
-            Polynomial::new(combined)
+            let weights: Vec<_> = (base_stages..num_stages)
+                .map(|stage| {
+                    let value = if stage < base_stages + 2 {
+                        store
+                    } else {
+                        F::one() - store
+                    };
+                    gamma_powers[stage] * value
+                })
+                .collect();
+            Polynomial::new(Self::combined_table(
+                &stage_cycle_points[base_stages..],
+                &weights,
+            ))
         };
 
         let output_openings = bytecode::read_raf_output_openings(dimensions).bytecode_ra;
