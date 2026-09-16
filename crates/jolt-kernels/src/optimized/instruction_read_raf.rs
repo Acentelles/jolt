@@ -685,9 +685,11 @@ impl<F: JoltField> OptimizedInstructionReadRafKernel<F> {
                 reason: "virtual RA chunk width must be a multiple of the phase width",
             });
         }
-        if log_t >= 32 {
+        // A domain of 2^32 cycles has last index u32::MAX. Its count must
+        // also fit usize before the domain-size shift below.
+        if log_t > u32::BITS as usize || log_t >= usize::BITS as usize {
             return Err(KernelError::Unsupported {
-                reason: "cycle bucket indices are u32",
+                reason: "cycle domain exceeds the host count or u32 index range",
             });
         }
         if rows.len() != 1 << log_t {
@@ -1472,7 +1474,7 @@ mod tests {
         InstructionReadRafKernel, InstructionReadRafWitness,
     };
     use crate::reference::views::eq_table;
-    use crate::SumcheckKernel;
+    use crate::{KernelError, SumcheckKernel};
 
     use super::{build_cycle_buckets, InstructionCycleRow, OptimizedInstructionReadRafKernel};
 
@@ -1578,6 +1580,39 @@ mod tests {
         assert!(row.raf_flag());
         #[cfg(feature = "akita")]
         assert_eq!(row.fused_inc::<Fr>(), -Fr::from_u64(123));
+    }
+
+    #[test]
+    #[cfg(target_pointer_width = "64")]
+    fn full_u32_cycle_domain_reaches_row_validation() {
+        let dimensions =
+            InstructionReadRafDimensions::new(32, 2 * RISCV_XLEN, NonZeroUsize::new(8).unwrap());
+        let result = OptimizedInstructionReadRafKernel::<Fr>::new(
+            dimensions,
+            &[],
+            Arc::new(Vec::new()),
+            fr(1),
+        );
+        // An empty witness avoids allocating the domain while distinguishing
+        // its accepted geometry from an unsupported cycle-index range.
+        assert!(matches!(
+            result,
+            Err(KernelError::TableSizeMismatch { expected, got: 0, .. })
+                if expected == 1usize << 32
+        ));
+    }
+
+    #[test]
+    fn cycle_domain_beyond_u32_indices_is_rejected() {
+        let dimensions =
+            InstructionReadRafDimensions::new(33, 2 * RISCV_XLEN, NonZeroUsize::new(8).unwrap());
+        let result = OptimizedInstructionReadRafKernel::<Fr>::new(
+            dimensions,
+            &[],
+            Arc::new(Vec::new()),
+            fr(1),
+        );
+        assert!(matches!(result, Err(KernelError::Unsupported { .. })));
     }
 
     /// The sumcheck input claim from first principles:
