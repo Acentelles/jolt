@@ -170,10 +170,20 @@ impl<F: JoltField> OptimizedInstructionClaimReductionKernel<F> {
                 |j: usize| -> Result<F, WitnessError> { Ok(coefficients.combine(&access.row(j)?)) };
             #[cfg(feature = "parallel")]
             {
-                (0..1usize << log_t)
-                    .into_par_iter()
-                    .map(cell)
-                    .collect::<Result<_, _>>()?
+                let len = 1usize << log_t;
+                let mut combined = Vec::with_capacity(len);
+                combined.spare_capacity_mut()[..len]
+                    .par_iter_mut()
+                    .enumerate()
+                    .try_for_each(|(j, slot)| {
+                        let value = cell(j)?;
+                        let _ = slot.write(value);
+                        Ok::<(), WitnessError>(())
+                    })?;
+                // SAFETY: successful collection initialized every slot below len.
+                // On error or panic len stays zero; F is Copy and has no drop.
+                unsafe { combined.set_len(len) };
+                combined
             }
             #[cfg(not(feature = "parallel"))]
             {
