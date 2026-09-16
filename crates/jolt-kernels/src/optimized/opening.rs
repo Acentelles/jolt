@@ -45,7 +45,7 @@ use std::sync::Arc;
 use jolt_claims::protocols::jolt::geometry::committed_openings::final_opening_id;
 use jolt_claims::protocols::jolt::{JoltCommittedPolynomial, TracePolynomialOrder};
 use jolt_field::JoltField;
-use jolt_poly::{MultilinearPoly, TensorEqTable};
+use jolt_poly::{range_mask_mle_msb, MultilinearPoly, TensorEqTable};
 use jolt_utils::unsafe_allocate_zero_vec;
 use jolt_witness::witnesses::{BytecodePc, LookupIndex, RamInc, RdInc, RemappedRamAddress};
 use jolt_witness::{stream_witnesses, JoltWitnessPlane, RandomAccessRows, StreamConsumer};
@@ -165,9 +165,12 @@ const fn is_block_embedded(polynomial: JoltCommittedPolynomial) -> bool {
 
 /// Packed per-cycle facts behind every committed trace column — the
 /// [`CommittedColumnsWitness`] bundle stored column-major with `Option`s
-/// packed as [`COLD`] sentinels: 64 bytes per cycle, shared by every trace
-/// polynomial view.
+/// packed as [`COLD`] sentinels: 64 bytes per physical cycle, shared by
+/// every trace polynomial view. An implicit padding tail retains one row.
 pub(crate) struct OpeningColumns {
+    cycles: usize,
+    /// Every implicit tail row has the same extracted facts. Retain it once.
+    padding: Option<CommittedColumnsWitness>,
     rd_inc: Vec<i128>,
     ram_inc: Vec<i128>,
     lookup_index: Vec<u128>,
@@ -194,6 +197,8 @@ impl OpeningColumns {
         }
         let mut consumers = (CollectOpeningColumns {
             columns: Self {
+                cycles,
+                padding: None,
                 rd_inc: Vec::with_capacity(cycles),
                 ram_inc: Vec::with_capacity(cycles),
                 lookup_index: Vec::with_capacity(cycles),
@@ -223,11 +228,15 @@ impl OpeningColumns {
         /// The scatter grain: big enough to amortize rayon dispatch, small
         /// enough to load-balance skewed extraction.
         const CHUNK: usize = 1 << 12;
-        let mut rd_inc: Vec<i128> = unsafe_allocate_zero_vec(cycles);
-        let mut ram_inc: Vec<i128> = unsafe_allocate_zero_vec(cycles);
-        let mut lookup_index: Vec<u128> = unsafe_allocate_zero_vec(cycles);
-        let mut bytecode_pc: Vec<u64> = unsafe_allocate_zero_vec(cycles);
-        let mut ram_address: Vec<u64> = unsafe_allocate_zero_vec(cycles);
+        let physical_cycles = cycles.min(access.physical_cycles());
+        let padding = (physical_cycles < cycles)
+            .then(|| access.window::<CommittedColumnsWitness>(physical_cycles))
+            .transpose()?;
+        let mut rd_inc: Vec<i128> = unsafe_allocate_zero_vec(physical_cycles);
+        let mut ram_inc: Vec<i128> = unsafe_allocate_zero_vec(physical_cycles);
+        let mut lookup_index: Vec<u128> = unsafe_allocate_zero_vec(physical_cycles);
+        let mut bytecode_pc: Vec<u64> = unsafe_allocate_zero_vec(physical_cycles);
+        let mut ram_address: Vec<u64> = unsafe_allocate_zero_vec(physical_cycles);
         let error = std::sync::Mutex::new(None);
         (
             rd_inc.par_chunks_mut(CHUNK),
@@ -268,6 +277,8 @@ impl OpeningColumns {
             return Err(failure.into());
         }
         Ok(Self {
+            cycles,
+            padding,
             rd_inc,
             ram_inc,
             lookup_index,
@@ -277,12 +288,17 @@ impl OpeningColumns {
     }
 
     fn cycles(&self) -> usize {
-        self.rd_inc.len()
+        self.cycles
     }
 
     /// The cycle's fact bundle, reassembled for [`ColumnKind`]'s accessors.
     #[inline]
     fn witness_row(&self, cycle: usize) -> CommittedColumnsWitness {
+        if cycle >= self.rd_inc.len() {
+            if let Some(padding) = self.padding {
+                return padding;
+            }
+        }
         let bytecode_pc = self.bytecode_pc[cycle];
         let ram_address = self.ram_address[cycle];
         CommittedColumnsWitness {
@@ -430,6 +446,16 @@ struct TraceOpeningPoly<F: JoltField> {
 }
 
 impl<F: JoltField> TraceOpeningPoly<F> {
+    /// Cycle-major padding is a consecutive coefficient range. Other
+    /// placements retain their existing complete scatter walk.
+    fn explicit_cycles(&self) -> usize {
+        if self.placement.t_stride == 1 {
+            self.columns.rd_inc.len()
+        } else {
+            self.columns.cycles()
+        }
+    }
+
     /// The cycle's grid entry, `None` when the cycle contributes nothing
     /// (cold one-hot cycle, zero increment).
     #[inline]
@@ -453,10 +479,15 @@ impl<F: JoltField> MultilinearPoly<F> for TraceOpeningPoly<F> {
         self.placement.total_vars
     }
 
+    #[expect(
+        clippy::expect_used,
+        reason = "validated grid and trace bounds place the padding range inside the domain"
+    )]
     fn evaluate(&self, point: &[F]) -> F {
         debug_assert_eq!(point.len(), self.placement.total_vars);
         let eq = TensorEqTable::new(point);
-        scatter_sum(self.columns.cycles(), |range| {
+        let explicit_cycles = self.explicit_cycles();
+        let mut result = scatter_sum(explicit_cycles, |range| {
             let mut acc = F::zero();
             for cycle in range {
                 if let Some((index, value)) = self.entry(cycle) {
@@ -464,7 +495,16 @@ impl<F: JoltField> MultilinearPoly<F> for TraceOpeningPoly<F> {
                 }
             }
             acc
-        })
+        });
+        if explicit_cycles < self.columns.cycles() {
+            if let Some((start, value)) = self.entry(explicit_cycles) {
+                let end = start + self.columns.cycles() - explicit_cycles;
+                result += value
+                    * range_mask_mle_msb(start as u128, end as u128, point)
+                        .expect("padding lies inside the opening grid");
+            }
+        }
+        result
     }
 
     fn for_each_row(&self, sigma: usize, f: &mut dyn FnMut(usize, &[F])) {
@@ -482,7 +522,10 @@ impl<F: JoltField> MultilinearPoly<F> for TraceOpeningPoly<F> {
         );
         let num_cols = 1usize << sigma;
         let mask = num_cols - 1;
-        scatter_fold(self.columns.cycles(), num_cols, |range, acc| {
+        // Cycle-major padding occupies consecutive matrix entries. Fold
+        // physical rows normally, then add the repeated tail by matrix row.
+        let explicit_cycles = self.explicit_cycles();
+        let mut result = scatter_fold(explicit_cycles, num_cols, |range, acc| {
             for cycle in range {
                 if let Some((index, value)) = self.entry(cycle) {
                     if self.kind.is_one_hot() {
@@ -492,7 +535,29 @@ impl<F: JoltField> MultilinearPoly<F> for TraceOpeningPoly<F> {
                     }
                 }
             }
-        })
+        });
+        if explicit_cycles < self.columns.cycles() {
+            if let Some((start, value)) = self.entry(explicit_cycles) {
+                let end = start + self.columns.cycles() - explicit_cycles;
+                let first_full_row = start.div_ceil(num_cols);
+                let last_full_row = end / num_cols;
+                let prefix_end = end.min(first_full_row * num_cols);
+                for index in start..prefix_end {
+                    result[index & mask] += left[index >> sigma] * value;
+                }
+                if first_full_row < last_full_row {
+                    let weight: F = left[first_full_row..last_full_row].iter().copied().sum();
+                    let contribution = weight * value;
+                    super::support::for_each_index_mut(&mut result, |_, entry| {
+                        *entry += contribution;
+                    });
+                }
+                for index in prefix_end.max(last_full_row * num_cols)..end {
+                    result[index & mask] += left[index >> sigma] * value;
+                }
+            }
+        }
+        result
     }
 }
 
@@ -640,7 +705,8 @@ mod tests {
     use crate::optimized::testing::{random_scalars, with_ram_fixture, FixtureShape, RamOp};
     use crate::ReferenceBackend;
 
-    const LOG_T: usize = 4;
+    // Leave several full padding windows beyond the short physical trace.
+    const LOG_T: usize = 8;
     const RAM_K: usize = 16;
 
     fn fixture_ops() -> Vec<RamOp> {
@@ -718,6 +784,8 @@ mod tests {
             let (ids, reference, optimized) = prepare_both(witness, grid);
             let point = random_scalars(grid.total_vars, 23);
             let sigmas = [
+                0,
+                2,
                 grid.total_vars.div_ceil(2),
                 grid.total_vars.div_ceil(2) + 1,
                 grid.total_vars,
