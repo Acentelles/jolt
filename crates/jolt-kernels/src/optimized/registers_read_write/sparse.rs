@@ -378,16 +378,25 @@ impl<F: JoltField> CycleState<F> {
                 ra_lut,
                 wa_lut,
                 mut inc,
-            } => (
-                CyclePhase::Direct {
-                    entries: bind_indexed_to_direct(&vals, &metas, &ra_lut, &wa_lut, r),
-                    inc: {
-                        inc.bind_with_order(r, BindingOrder::LowToHigh);
-                        inc
+            } => {
+                // In-place binds compact the indexed columns but retain their
+                // original capacity. Release those dead tails before the
+                // larger direct layout is allocated alongside them.
+                let mut vals = vals;
+                let mut metas = metas;
+                vals.shrink_to_fit();
+                metas.shrink_to_fit();
+                (
+                    CyclePhase::Direct {
+                        entries: bind_indexed_to_direct(&vals, &metas, &ra_lut, &wa_lut, r),
+                        inc: {
+                            inc.bind_with_order(r, BindingOrder::LowToHigh);
+                            inc
+                        },
                     },
-                },
-                true,
-            ),
+                    true,
+                )
+            }
             CyclePhase::Direct { .. } => unreachable!("direct entries bind in place above"),
         };
         self.0 = next;
