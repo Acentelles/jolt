@@ -8,7 +8,7 @@ use rayon::prelude::*;
 use super::{
     layout::{
         merge_bind, merge_count, merge_soa, split_indexed, split_pair_group, split_soa_pair_group,
-        Cell, IndexedMeta, MatrixEntry, SeedEntry, SoaSpareBlock, SparseEntry,
+        Cell, IndexedMeta, MatrixEntry, SeedEntry, SoaRow, SoaSpareBlock, SparseEntry,
     },
     CoeffLut, CycleState, LutIndex, OneHotCoeff,
 };
@@ -311,6 +311,215 @@ pub(super) fn bind_indexed_to_direct<F: JoltField>(
     // the merge writes each slot exactly once.
     unsafe {
         bound.set_len(bound_length);
+    }
+    bound
+}
+
+/// Per-thread direct rows reconstructed from four indexed rows.
+type DirectScratch<F> = (Vec<SparseEntry<F, F>>, Vec<SparseEntry<F, F>>);
+
+fn direct_scratch<F: JoltField>() -> DirectScratch<F> {
+    (
+        Vec::with_capacity(1 << REGISTER_ADDRESS_BITS),
+        Vec::with_capacity(1 << REGISTER_ADDRESS_BITS),
+    )
+}
+
+/// Rebuild two direct rows without retaining the complete direct generation.
+fn indexed_intermediates<F: JoltField>(
+    vals: &[F],
+    metas: &[IndexedMeta],
+    ra_lut: &CoeffLut<F>,
+    wa_lut: &CoeffLut<F>,
+    challenge: F,
+    scratch: &mut DirectScratch<F>,
+) {
+    scratch.0.clear();
+    scratch.1.clear();
+    let half = metas.partition_point(|meta| meta.row % 4 < 2);
+    let unused = CycleState::<F>::unused_lut();
+    let deref = |entry: SparseEntry<F, LutIndex>| SparseEntry::<F, F> {
+        val: entry.val,
+        prev_val: entry.prev_val,
+        next_val: entry.next_val,
+        row: entry.row,
+        ra: entry.ra.value(ra_lut),
+        wa: entry.wa.value(wa_lut),
+        col: entry.col,
+    };
+    for (range, out) in [
+        (0..half, &mut scratch.0),
+        (half..metas.len(), &mut scratch.1),
+    ] {
+        let (evens, odds) = split_soa_pair_group(&vals[range.clone()], &metas[range]);
+        merge_soa(evens, odds, |even, odd| {
+            out.push(SparseEntry::bind(
+                even.map(&deref).as_ref(),
+                odd.map(&deref).as_ref(),
+                challenge,
+                &unused,
+                &unused,
+            ));
+        });
+    }
+}
+
+/// Evaluate the round after dereferencing, rebuilding its rows in scratch.
+pub(super) fn sparse_quadratic_deferred<F: JoltField>(
+    rows: SoaRow<'_, F>,
+    ra_lut: &CoeffLut<F>,
+    wa_lut: &CoeffLut<F>,
+    challenge: F,
+    e_in: &[F],
+    e_out: &[F],
+    inc_evals_at: impl Fn(usize) -> [F; 2] + Sync,
+) -> [F; 2] {
+    let (vals, metas) = rows;
+    let in_bits = if e_in.len() <= 1 {
+        0
+    } else {
+        e_in.len().trailing_zeros() as usize
+    };
+    let mask = (1usize << in_bits) - 1;
+    let unused = CycleState::<F>::unused_lut();
+    let contribution = |scratch: &mut DirectScratch<F>, group: &[IndexedMeta]| {
+        // SAFETY: every group is a subslice of metas, parallel to vals.
+        let start = unsafe { group.as_ptr().offset_from(metas.as_ptr()) } as usize;
+        let mut cursor = start;
+        let mut acc = [F::Accumulator::default(), F::Accumulator::default()];
+        for pair_group in group.chunk_by(|a, b| a.row / 4 == b.row / 4) {
+            let z = pair_group[0].row() / 4;
+            indexed_intermediates(
+                &vals[cursor..cursor + pair_group.len()],
+                pair_group,
+                ra_lut,
+                wa_lut,
+                challenge,
+                scratch,
+            );
+            cursor += pair_group.len();
+            let mut inner = [F::Accumulator::default(), F::Accumulator::default()];
+            accumulate_pair_group(
+                &scratch.0,
+                &scratch.1,
+                inc_evals_at(z),
+                &mut inner,
+                &unused,
+                &unused,
+            );
+            let weight = if e_in.len() <= 1 {
+                F::one()
+            } else {
+                e_in[z & mask]
+            };
+            acc[0].fmadd(weight, inner[0].reduce());
+            acc[1].fmadd(weight, inner[1].reduce());
+        }
+        let weight = e_out[(group[0].row() / 4) >> in_bits];
+        [weight * acc[0].reduce(), weight * acc[1].reduce()]
+    };
+    let same_group =
+        |a: &IndexedMeta, b: &IndexedMeta| (a.row() / 4) >> in_bits == (b.row() / 4) >> in_bits;
+    #[cfg(feature = "parallel")]
+    {
+        metas
+            .par_chunk_by(same_group)
+            .map_init(direct_scratch, |scratch, group| {
+                contribution(scratch, group)
+            })
+            .reduce(|| [F::zero(); 2], |a, b| [a[0] + b[0], a[1] + b[1]])
+    }
+    #[cfg(not(feature = "parallel"))]
+    {
+        let mut scratch = direct_scratch();
+        metas
+            .chunk_by(same_group)
+            .map(|group| contribution(&mut scratch, group))
+            .fold([F::zero(); 2], |a, b| [a[0] + b[0], a[1] + b[1]])
+    }
+}
+
+/// Bind two variables while allocating only the second direct generation.
+pub(super) fn bind_indexed_twice<F: JoltField>(
+    vals: &[F],
+    metas: &[IndexedMeta],
+    ra_lut: &CoeffLut<F>,
+    wa_lut: &CoeffLut<F>,
+    first: F,
+    second: F,
+) -> Vec<SparseEntry<F, F>> {
+    const _: () = assert!(REGISTER_ADDRESS_BITS <= 7);
+    let same_group = |a: &IndexedMeta, b: &IndexedMeta| a.row / 4 == b.row / 4;
+    let bounds = pair_aligned_bounds(metas, 2);
+    let blocks = bounds.len() - 1;
+    let count_block = |block: usize| -> usize {
+        metas[bounds[block]..bounds[block + 1]]
+            .chunk_by(same_group)
+            .map(|group| {
+                group
+                    .iter()
+                    .fold(0u128, |mask, entry| mask | (1u128 << entry.col))
+                    .count_ones() as usize
+            })
+            .sum()
+    };
+    #[cfg(feature = "parallel")]
+    let counts: Vec<usize> = (0..blocks).into_par_iter().map(count_block).collect();
+    #[cfg(not(feature = "parallel"))]
+    let counts: Vec<usize> = (0..blocks).map(count_block).collect();
+    let len = counts.iter().sum();
+    let mut bound = Vec::with_capacity(len);
+    let mut slices = Vec::with_capacity(blocks);
+    let mut rest = bound.spare_capacity_mut();
+    for count in counts {
+        let (out, next) = rest.split_at_mut(count);
+        slices.push(out);
+        rest = next;
+    }
+    let unused = CycleState::<F>::unused_lut();
+    let fill = |scratch: &mut DirectScratch<F>,
+                (block, out): (usize, &mut [MaybeUninit<SparseEntry<F, F>>])| {
+        let mut cursor = bounds[block];
+        let mut written = 0;
+        for group in metas[bounds[block]..bounds[block + 1]].chunk_by(same_group) {
+            indexed_intermediates(
+                &vals[cursor..cursor + group.len()],
+                group,
+                ra_lut,
+                wa_lut,
+                first,
+                scratch,
+            );
+            cursor += group.len();
+            merge_bind(
+                &scratch.0,
+                &scratch.1,
+                &|even, odd| SparseEntry::bind(even, odd, second, &unused, &unused),
+                |entry| {
+                    out[written] = MaybeUninit::new(entry);
+                    written += 1;
+                },
+            );
+        }
+        debug_assert_eq!(written, out.len());
+    };
+    #[cfg(feature = "parallel")]
+    slices
+        .into_par_iter()
+        .enumerate()
+        .for_each_init(direct_scratch, |scratch, item| fill(scratch, item));
+    #[cfg(not(feature = "parallel"))]
+    {
+        let mut scratch = direct_scratch();
+        slices
+            .into_iter()
+            .enumerate()
+            .for_each(|item| fill(&mut scratch, item));
+    }
+    // SAFETY: counts assign disjoint output spans and each merged column
+    // initializes exactly one entry in its assigned span.
+    unsafe {
+        bound.set_len(len);
     }
     bound
 }

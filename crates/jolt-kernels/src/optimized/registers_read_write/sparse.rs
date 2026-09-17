@@ -154,8 +154,9 @@ mod ops;
 pub(super) use layout::SeedEntry;
 use layout::{merge_bind, split_pair_group, Cell, IndexedMeta, SparseEntry};
 use ops::{
-    bind_indexed_in_place_soa, bind_indexed_to_direct, bind_seed_entries_fused,
-    bind_sparse_entries_in_place, sparse_quadratic, sparse_quadratic_fused, sparse_quadratic_soa,
+    bind_indexed_in_place_soa, bind_indexed_to_direct, bind_indexed_twice, bind_seed_entries_fused,
+    bind_sparse_entries_in_place, sparse_quadratic, sparse_quadratic_deferred,
+    sparse_quadratic_fused, sparse_quadratic_soa,
 };
 /// Sparse-entry layout: compact seed, indexed SoA, then direct field values.
 #[cfg_attr(feature = "allocative", derive(allocative::Allocative))]
@@ -184,6 +185,18 @@ enum CyclePhase<F: JoltField> {
         metas: Vec<IndexedMeta>,
         ra_lut: CoeffLut<F>,
         wa_lut: CoeffLut<F>,
+        inc: Polynomial<F>,
+    },
+    /// Keep the last indexed generation and reconstruct the first direct
+    /// generation in bounded scratch until the following bind.
+    IndexedBound {
+        vals: Vec<F>,
+        #[cfg_attr(feature = "allocative", allocative(visit = crate::backend::visit_heap_free_elements))]
+        metas: Vec<IndexedMeta>,
+        ra_lut: CoeffLut<F>,
+        wa_lut: CoeffLut<F>,
+        #[cfg_attr(feature = "allocative", allocative(skip))]
+        challenge: F,
         inc: Polynomial<F>,
     },
     Direct {
@@ -268,6 +281,28 @@ impl<F: JoltField> CycleState<F> {
                     let inc_0 = inc[2 * z];
                     [inc_0, inc[2 * z + 1] - inc_0]
                 })
+            }
+            CyclePhase::IndexedBound {
+                vals,
+                metas,
+                ra_lut,
+                wa_lut,
+                challenge,
+                inc,
+            } => {
+                let inc = inc.evals();
+                sparse_quadratic_deferred(
+                    (vals, metas),
+                    ra_lut,
+                    wa_lut,
+                    *challenge,
+                    e_in,
+                    e_out,
+                    |z| {
+                        let inc_0 = inc[2 * z];
+                        [inc_0, inc[2 * z + 1] - inc_0]
+                    },
+                )
             }
             CyclePhase::Direct { entries, inc } => {
                 let unused = Self::unused_lut();
@@ -371,7 +406,7 @@ impl<F: JoltField> CycleState<F> {
                     true,
                 )
             }
-            // Dereference during the bind before the LUT index overflows.
+            // Retain the challenge before the LUT index would overflow.
             CyclePhase::Indexed {
                 vals,
                 metas,
@@ -387,8 +422,12 @@ impl<F: JoltField> CycleState<F> {
                 vals.shrink_to_fit();
                 metas.shrink_to_fit();
                 (
-                    CyclePhase::Direct {
-                        entries: bind_indexed_to_direct(&vals, &metas, &ra_lut, &wa_lut, r),
+                    CyclePhase::IndexedBound {
+                        vals,
+                        metas,
+                        ra_lut,
+                        wa_lut,
+                        challenge: r,
                         inc: {
                             inc.bind_with_order(r, BindingOrder::LowToHigh);
                             inc
@@ -396,6 +435,18 @@ impl<F: JoltField> CycleState<F> {
                     },
                     true,
                 )
+            }
+            CyclePhase::IndexedBound {
+                vals,
+                metas,
+                ra_lut,
+                wa_lut,
+                challenge,
+                mut inc,
+            } => {
+                let entries = bind_indexed_twice(&vals, &metas, &ra_lut, &wa_lut, challenge, r);
+                inc.bind_with_order(r, BindingOrder::LowToHigh);
+                (CyclePhase::Direct { entries, inc }, true)
             }
             CyclePhase::Direct { .. } => unreachable!("direct entries bind in place above"),
         };
@@ -455,6 +506,22 @@ impl<F: JoltField> CycleState<F> {
                     ra[meta.col as usize] = LutIndex(meta.ra).value(&ra_lut);
                     wa[meta.col as usize] = LutIndex(meta.wa).value(&wa_lut);
                     val[meta.col as usize] = value;
+                }
+                inc.evals()[0]
+            }
+            CyclePhase::IndexedBound {
+                vals,
+                metas,
+                ra_lut,
+                wa_lut,
+                challenge,
+                inc,
+            } => {
+                for entry in bind_indexed_to_direct(&vals, &metas, &ra_lut, &wa_lut, challenge) {
+                    debug_assert_eq!(entry.row, 0);
+                    ra[entry.col as usize] = entry.ra;
+                    wa[entry.col as usize] = entry.wa;
+                    val[entry.col as usize] = entry.val;
                 }
                 inc.evals()[0]
             }
