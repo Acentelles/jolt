@@ -15,12 +15,7 @@ kernel-tests = ["field-inline"]
 field-inline = ["jolt_sdk/field-inline"]
 field-inline-bn254 = ["field-inline", "jolt-field/field-inline-guest-bn254"]
 field-inline-fp128 = ["field-inline", "jolt-field/field-inline-guest-fp128"]
-akita = [
-  "jolt_sdk/akita",
-  "dep:jolt-akita",
-  "dep:jolt-crypto",
-  "dep:jolt-transcript",
-]
+akita = ["jolt_sdk/akita", "dep:jolt-akita", "dep:jolt-crypto"]
 fast-alloc = ["jolt_sdk/guest-size-class-alloc"]
 hash-inlines = [
   "jolt_sdk/blake2-inline",
@@ -47,9 +42,6 @@ serde.workspace = true
 jolt-field = { path = "../../../crates/jolt-field" }
 jolt-akita = { path = "../../../crates/jolt-akita", optional = true, default-features = false }
 jolt-crypto = { path = "../../../crates/jolt-crypto", optional = true, default-features = false }
-jolt-transcript = { path = "../../../crates/jolt-transcript", default-features = false, features = [
-  "transcript-blake2b",
-], optional = true }
 
 [lib]
 test = false

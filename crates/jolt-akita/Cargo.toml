@@ -32,6 +32,7 @@ akita-pcs = { workspace = true, default-features = false, features = [
 akita-challenges.workspace = true
 akita-planner.workspace = true
 akita-schedules.workspace = true
+akita-transcript.workspace = true
 akita-types.workspace = true
 akita-prover.workspace = true
 akita-params.workspace = true
