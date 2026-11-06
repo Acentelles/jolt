@@ -3303,6 +3303,7 @@ dependencies = [
  "akita-planner",
  "akita-prover",
  "akita-schedules",
+ "akita-transcript",
  "akita-types",
  "akita-verifier",
  "bincode 2.0.1",
@@ -3344,7 +3345,6 @@ dependencies = [
  "jolt-host",
  "jolt-inlines-blake2",
  "jolt-inlines-keccak256",
- "jolt-transcript",
  "jolt-verifier",
  "postcard",
  "serde",
@@ -3383,7 +3383,6 @@ dependencies = [
  "jolt-openings",
  "jolt-program",
  "jolt-prover",
- "jolt-transcript",
  "jolt-verifier",
  "jolt-witness",
  "postcard",
@@ -3405,21 +3404,26 @@ dependencies = [
 ]
 
 [[package]]
-name = "jolt-blindfold"
+name = "jolt-algebra"
 version = "0.1.0"
 dependencies = [
- "jolt-claims",
- "jolt-crypto",
- "jolt-field",
- "jolt-poly",
- "jolt-r1cs",
- "jolt-sumcheck",
- "jolt-transcript",
- "jolt-utils",
+ "allocative",
+ "ark-bn254",
+ "ark-ff 0.5.0",
+ "ark-serialize 0.5.0",
+ "bincode 2.0.1",
+ "bytemuck",
+ "cc",
+ "criterion",
+ "jolt-riscv",
+ "num-bigint",
+ "num-traits",
+ "rand 0.8.7",
  "rand_chacha 0.3.1",
  "rand_core 0.6.4",
  "rayon",
  "serde",
+ "spongefish",
  "thiserror 2.0.20",
 ]
 
@@ -3567,24 +3571,7 @@ dependencies = [
 name = "jolt-field"
 version = "0.1.0"
 dependencies = [
- "allocative",
- "ark-bn254",
- "ark-ff 0.5.0",
- "ark-serialize 0.5.0",
- "bincode 2.0.1",
- "bytemuck",
- "cc",
- "criterion",
- "jolt-riscv",
- "num-bigint",
- "num-traits",
- "rand 0.8.7",
- "rand_chacha 0.3.1",
- "rand_core 0.6.4",
- "rayon",
- "serde",
- "spongefish",
- "thiserror 2.0.20",
+ "jolt-algebra",
 ]
 
 [[package]]
@@ -3843,6 +3830,7 @@ dependencies = [
  "rand_chacha 0.3.1",
  "rand_core 0.6.4",
  "serde",
+ "spongefish",
  "thiserror 2.0.20",
  "tracing",
 ]
@@ -3939,7 +3927,6 @@ dependencies = [
  "clap",
  "common",
  "jolt-akita",
- "jolt-blindfold",
  "jolt-claims",
  "jolt-crypto",
  "jolt-dory",
@@ -3960,6 +3947,7 @@ dependencies = [
  "jolt-transcript",
  "jolt-verifier",
  "jolt-witness",
+ "jolt-zk",
  "postcard",
  "rand_core 0.6.4",
  "rayon",
@@ -4131,7 +4119,6 @@ dependencies = [
  "bincode 2.0.1",
  "common",
  "jolt-akita",
- "jolt-blindfold",
  "jolt-claims",
  "jolt-claims-derive",
  "jolt-crypto",
@@ -4148,6 +4135,7 @@ dependencies = [
  "jolt-transcript",
  "jolt-verifier-derive",
  "jolt-witness",
+ "jolt-zk",
  "num-traits",
  "postcard",
  "quote",
@@ -4192,6 +4180,25 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.9",
+]
+
+[[package]]
+name = "jolt-zk"
+version = "0.1.0"
+dependencies = [
+ "jolt-claims",
+ "jolt-crypto",
+ "jolt-field",
+ "jolt-poly",
+ "jolt-r1cs",
+ "jolt-sumcheck",
+ "jolt-transcript",
+ "jolt-utils",
+ "rand_chacha 0.3.1",
+ "rand_core 0.6.4",
+ "rayon",
+ "serde",
+ "thiserror 2.0.20",
 ]
 
 [[package]]
@@ -5587,7 +5594,6 @@ dependencies = [
  "jolt-claims",
  "jolt-field",
  "jolt-inlines-blake2",
- "jolt-inlines-keccak256",
  "jolt-inlines-ntt",
  "jolt-poly",
  "jolt-program",
@@ -5615,7 +5621,6 @@ dependencies = [
  "jolt-inlines-blake2",
  "jolt-riscv",
  "jolt-sdk",
- "jolt-transcript",
  "serde",
 ]
 
