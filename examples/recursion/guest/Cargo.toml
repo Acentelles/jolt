@@ -17,16 +17,11 @@ field-inline-bn254 = ["field-inline", "jolt-field/field-inline-guest-bn254"]
 field-inline-fp128 = ["field-inline", "jolt-field/field-inline-guest-fp128"]
 akita = ["jolt_sdk/akita", "dep:jolt-akita", "dep:jolt-crypto"]
 fast-alloc = ["jolt_sdk/guest-size-class-alloc"]
-hash-inlines = [
-  "jolt_sdk/blake2-inline",
-  "jolt-transcript?/blake2-inline",
-  "jolt-akita?/blake2-inline",
-]
+hash-inlines = ["jolt_sdk/blake2-inline", "jolt-akita?/blake2-inline"]
 
 [package.metadata.cargo-machete]
-# jolt-transcript forwards features to the verifier dependencies.
 # Generated embedded_bytecode.rs imports jolt-riscv when the host embeds a guest.
-ignored = ["jolt-riscv", "jolt-transcript"]
+ignored = ["jolt-riscv"]
 
 [dependencies]
 jolt-inlines-blake2.workspace = true
