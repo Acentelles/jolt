@@ -1053,7 +1053,7 @@ fn prove_workload(
     use crate::JoltProverPreprocessing;
     use jolt_akita::{AkitaField, AkitaScheduleArtifacts, AkitaScheme};
     use jolt_openings::CommitmentScheme;
-    use jolt_transcript::{Keccak, ProverState, VerifierState};
+    use jolt_transcript::{Blake2b512 as Sponge, ProverState, VerifierState};
     use jolt_verifier::{JoltVerifierPreprocessing, ProgramPreprocessing};
 
     let backend = match backend {
@@ -1124,7 +1124,7 @@ fn prove_workload(
     // The `jolt_prover::prove` root span covers exactly
     // this interval; the Instant is the `--format none` baseline.
     let now = Instant::now();
-    let proof = crate::akita::prove::<AkitaField, AkitaScheme, AkitaVc, ProverState<Keccak>>(
+    let proof = crate::akita::prove::<AkitaField, AkitaScheme, AkitaVc, ProverState<Sponge>>(
         backend.with_witness(&witness),
         &prover_preprocessing,
         &config,
@@ -1148,7 +1148,7 @@ fn prove_workload(
     );
 
     let verify = || {
-        jolt_verifier::verify::<AkitaField, AkitaScheme, AkitaVc, VerifierState<'_, Keccak>>(
+        jolt_verifier::verify::<AkitaField, AkitaScheme, AkitaVc, VerifierState<'_, Sponge>>(
             &prover_preprocessing.verifier,
             &public_io,
             &proof,

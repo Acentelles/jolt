@@ -251,7 +251,7 @@ mod clear {
     fn akita_field_inline_duplicate_inc_group_is_rejected() {
         use jolt_claims::protocols::field_inline::lattice::field_inc_group_role;
         use jolt_openings::{GroupBatchOpening, GroupOpeningClaim, TaggedGroupOpeningClaim};
-        use jolt_transcript::{verifier_transcript, Keccak};
+        use jolt_transcript::{verifier_transcript, Blake2b512};
 
         let (output, ()) = akita::prove(&field_ops(), JoltBackend::optimized(), |_, _, _| ());
         let commitment = output
@@ -272,7 +272,7 @@ mod clear {
             ],
             vec![AkitaField::from_u64(0)],
         );
-        let mut transcript = verifier_transcript::<Keccak>(
+        let mut transcript = verifier_transcript::<Blake2b512>(
             &jolt_transcript::protocol_tag(b"spurious-field_inline-group"),
             b"",
             &[],

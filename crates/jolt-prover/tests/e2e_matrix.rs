@@ -387,7 +387,7 @@ mod matrix {
         use jolt_prover::akita::preprocessing::{self, AkitaVc};
         use jolt_prover::JoltBackend;
         use jolt_prover::ProverConfig;
-        use jolt_transcript::{Keccak, ProverState, VerifierState};
+        use jolt_transcript::{Blake2b512 as Sponge, ProverState, VerifierState};
         use jolt_witness::{JoltVmWitnessConfig, JoltVmWitnessInputs, TraceBackend};
 
         use crate::support::{self, GuestCase};
@@ -434,7 +434,7 @@ mod matrix {
                 .include_trusted_advice(trusted_advice),
                 JoltVmWitnessInputs::new(&prepared.program, &program_preprocessing, prepared.trace),
             );
-            let proof = akita::prove::<AkitaField, AkitaScheme, AkitaVc, ProverState<Keccak>>(
+            let proof = akita::prove::<AkitaField, AkitaScheme, AkitaVc, ProverState<Sponge>>(
                 JoltBackend::optimized().with_witness(&witness),
                 &preprocessing,
                 &config,
@@ -442,7 +442,7 @@ mod matrix {
                 &public_io,
             )
             .expect("Akita proof");
-            jolt_verifier::verify::<AkitaField, AkitaScheme, AkitaVc, VerifierState<'_, Keccak>>(
+            jolt_verifier::verify::<AkitaField, AkitaScheme, AkitaVc, VerifierState<'_, Sponge>>(
                 &preprocessing.verifier,
                 &public_io,
                 &proof,

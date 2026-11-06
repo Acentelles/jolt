@@ -18,7 +18,7 @@ use jolt_openings::{
 };
 use jolt_poly::{MultilinearPoly, OneHotPolynomial};
 use jolt_transcript::{
-    protocol_tag, prover_transcript, verifier_transcript, Keccak, Transcript, TAG_BYTES,
+    protocol_tag, prover_transcript, verifier_transcript, Blake2b512, Transcript, TAG_BYTES,
 };
 
 const SESSION: [u8; TAG_BYTES] = protocol_tag(b"akita-grouped-capacity");
@@ -104,7 +104,7 @@ fn grouped_opening_proves_advice_larger_than_the_trace_group() {
     .expect("trace group should commit against the larger advice object");
     let main = GroupOpeningClaim::new(trace_commitment, trace_point, vec![trace_evaluation]);
 
-    let mut prover_state = prover_transcript::<Keccak>(&SESSION, b"");
+    let mut prover_state = prover_transcript::<Blake2b512>(&SESSION, b"");
     let proof = AkitaScheme::prove_batch(
         &prover_setup,
         vec![(advice_claim.clone(), advice_hint)],
@@ -121,7 +121,7 @@ fn grouped_opening_proves_advice_larger_than_the_trace_group() {
     )
     .expect("verifier setup should deserialize");
     for setup in [&verifier_setup, &transported] {
-        let mut verifier_state = verifier_transcript::<Keccak>(&SESSION, b"", &narg);
+        let mut verifier_state = verifier_transcript::<Blake2b512>(&SESSION, b"", &narg);
         let pending = AkitaScheme::verify_batch(
             setup,
             std::slice::from_ref(&advice_claim),
@@ -135,7 +135,7 @@ fn grouped_opening_proves_advice_larger_than_the_trace_group() {
         AkitaScheme::check_eof(pending, verifier_state).expect("the argument is read whole");
     }
 
-    let mut other_context = verifier_transcript::<Keccak>(&SESSION, b"", &narg);
+    let mut other_context = verifier_transcript::<Blake2b512>(&SESSION, b"", &narg);
     other_context.append_bytes(b"different preceding Jolt messages");
     assert!(AkitaScheme::verify_batch(
         &transported,
