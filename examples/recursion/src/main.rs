@@ -975,6 +975,8 @@ fn configured_recursion_program(memory_config: MemoryConfig) -> Program {
     program.add_guest_feature("prevalidated-catalog");
     #[cfg(all(feature = "akita", feature = "digest-nozero"))]
     program.add_guest_feature("digest-nozero");
+    #[cfg(all(feature = "akita", feature = "carry-graph"))]
+    program.add_guest_feature("carry-graph");
     program.add_guest_feature("fast-alloc");
     program.add_guest_feature("hash-inlines");
     program.set_memory_config(memory_config);
@@ -1118,6 +1120,7 @@ env | grep -E '^(ZEROOS_GUEST_RUSTFLAGS|CARGO_PROFILE_[A-Z0-9_]*|RUSTFLAGS|CARGO
 if [ -n "${JOLT_IMMUTABLE_RECIPES_RS:-}" ]; then echo immutable-recipes-tables; sha256sum < "$JOLT_IMMUTABLE_RECIPES_RS"; else echo immutable-recipes-tables-none; fi
 if [ -n "${JOLT_PREVALIDATED_CATALOG_RS:-}" ]; then echo prevalidated-catalog; sha256sum < "$JOLT_PREVALIDATED_CATALOG_RS"; else echo prevalidated-catalog-none; fi
 if [ -n "${AKITA_PREVALIDATED_VIEW_RS:-}" ]; then echo prevalidated-view; sha256sum < "$AKITA_PREVALIDATED_VIEW_RS"; else echo prevalidated-view-none; fi
+if [ -n "${AKITA_CARRY_GRAPH_RS:-}" ]; then echo carry-graph; sha256sum < "$AKITA_CARRY_GRAPH_RS"; else echo carry-graph-none; fi
 echo "$3"
 } | sha256sum | cut -c1-64
 "#;
@@ -1401,6 +1404,8 @@ fn verify_proofs(
         &all_groups_data[..layout.setup_len],
         "/tmp/jolt-guest-targets",
     );
+    #[cfg(all(feature = "akita", feature = "carry-graph"))]
+    let carry_graph = carry_graph_source::prepare(&all_groups_data, "/tmp/jolt-guest-targets");
     run_recursion_proof(
         guest,
         run_config,
@@ -1412,6 +1417,8 @@ fn verify_proofs(
     immutable_recipe_tables::release(recipe_tables);
     #[cfg(all(feature = "akita", feature = "prevalidated-catalog"))]
     prevalidated_catalog::release(prevalidated_catalog);
+    #[cfg(all(feature = "akita", feature = "carry-graph"))]
+    carry_graph_source::release(carry_graph);
 }
 
 fn main() {
@@ -1749,3 +1756,6 @@ mod guest_build_tests {
 
 #[cfg(all(feature = "akita", feature = "prevalidated-catalog"))]
 mod prevalidated_catalog;
+
+#[cfg(all(feature = "akita", feature = "carry-graph"))]
+mod carry_graph_source;

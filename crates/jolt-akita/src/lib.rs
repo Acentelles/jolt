@@ -86,3 +86,6 @@ pub use prevalidated_catalog::{
     EMPTY_PREVALIDATED_CATALOG_SOURCE, EMPTY_PREVALIDATED_VIEW_SOURCE,
     PREVALIDATED_CATALOG_VARIABLE, PREVALIDATED_VIEW_VARIABLE,
 };
+
+#[cfg(feature = "carry-graph")]
+pub use akita_algebra::offset_eq::carry_graph;
