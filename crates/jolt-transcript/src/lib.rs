@@ -39,6 +39,8 @@ mod challenge;
 mod codec;
 mod digest_hash;
 mod grind_bits;
+#[cfg(all(feature = "keccak-inline", target_arch = "riscv64"))]
+mod keccak_inline;
 #[cfg(feature = "transcript-poseidon")]
 mod poseidon;
 mod pow;
@@ -93,5 +95,10 @@ use spongefish::instantiations::Hash;
 pub type Blake2b512 = Hash<Blake2b512Digest>;
 
 /// Spongefish's Keccak-f[1600] duplex sponge.
-#[cfg(feature = "transcript-keccak")]
+#[cfg(all(
+    feature = "transcript-keccak",
+    not(all(feature = "keccak-inline", target_arch = "riscv64"))
+))]
 pub use spongefish::instantiations::Keccak;
+#[cfg(all(feature = "keccak-inline", target_arch = "riscv64"))]
+pub use keccak_inline::Keccak;

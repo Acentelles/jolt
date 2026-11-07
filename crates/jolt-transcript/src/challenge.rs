@@ -36,6 +36,8 @@ use crate::codec::WORD_BYTES;
 #[cfg(feature = "transcript-blake2b")]
 use crate::Blake2b512;
 use crate::ChallengeSetSize;
+#[cfg(all(feature = "keccak-inline", target_arch = "riscv64"))]
+use crate::Keccak as InlineKeccak;
 
 use sealed::Sealed;
 
@@ -141,6 +143,10 @@ pub trait UniformBytes: DuplexSpongeInterface<U = u8> + Sealed {}
 impl Sealed for Keccak {}
 #[cfg(feature = "transcript-keccak")]
 impl UniformBytes for Keccak {}
+#[cfg(all(feature = "keccak-inline", target_arch = "riscv64"))]
+impl Sealed for InlineKeccak {}
+#[cfg(all(feature = "keccak-inline", target_arch = "riscv64"))]
+impl UniformBytes for InlineKeccak {}
 #[cfg(feature = "transcript-blake2b")]
 impl Sealed for Blake2b512 {}
 #[cfg(feature = "transcript-blake2b")]

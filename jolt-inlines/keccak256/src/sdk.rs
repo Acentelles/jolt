@@ -154,6 +154,32 @@ fn absorb_final(state: &mut [u64; 25], input: &[u8]) {
     unsafe { keccak256_absorb_permute(state.as_mut_ptr(), block.as_ptr().cast()) };
 }
 
+/// Applies all 24 rounds of Keccak-f[1600] without absorbing a block.
+///
+/// Available on RV64 guests and with the `host` reference implementation.
+#[cfg(any(feature = "host", target_arch = "riscv64"))]
+#[inline(always)]
+pub fn keccak_f1600(state: &mut [u64; 25]) {
+    #[cfg(all(not(feature = "host"), target_arch = "riscv64"))]
+    {
+        use crate::{INLINE_OPCODE, KECCAK256_FUNCT3, KECCAK256_FUNCT7};
+        // SAFETY: the exclusive array reference supplies 25 initialized,
+        // aligned, writable lanes. The bare instruction uses no second input.
+        unsafe {
+            core::arch::asm!(
+                ".insn r {opcode}, {funct3}, {funct7}, x0, {rs1}, x0",
+                opcode = const INLINE_OPCODE,
+                funct3 = const KECCAK256_FUNCT3,
+                funct7 = const KECCAK256_FUNCT7,
+                rs1 = in(reg) state.as_mut_ptr(),
+                options(nostack)
+            );
+        }
+    }
+    #[cfg(feature = "host")]
+    crate::exec::execute_keccak_f(state);
+}
+
 /// Absorbs one Keccak-256 rate block and applies Keccak-f[1600].
 ///
 /// On RISC-V guests this is the fused inline; with the `host` feature it is
@@ -202,6 +228,13 @@ pub unsafe fn keccak256_absorb_permute(state: *mut u64, block: *const u8) {
 #[cfg(all(test, feature = "host"))]
 mod tests {
     use super::*;
+
+    #[test]
+    fn bare_permutation_known_answer() {
+        let mut state = [0u64; 25];
+        keccak_f1600(&mut state);
+        assert_eq!(state, crate::test_constants::xkcp_vectors::AFTER_ONE_PERMUTATION);
+    }
 
     #[test]
     fn test_keccak256_aligned_vs_unaligned() {
