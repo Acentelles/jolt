@@ -20,7 +20,7 @@ use jolt_openings::{
     OpeningsError, VerifierOpeningClaim,
 };
 use jolt_poly::{MultilinearPoly, OneHotPolynomial};
-use jolt_transcript::{protocol_tag, prover_transcript, verifier_transcript, Blake2b512};
+use jolt_transcript::{protocol_tag, prover_transcript, verifier_transcript, Blake2b512, Keccak};
 
 struct TraceRows {
     indices: Vec<[u8; 2]>,
@@ -100,7 +100,7 @@ fn akita_streamed_trace_batch_rejects_swapped_evaluations() {
     .expect("streamed trace group should commit");
     let mut statement = GroupOpeningClaim::new(commitment, point, evaluations);
     let session = protocol_tag(b"akita-streamed-tamper");
-    let mut prover_state = prover_transcript::<Blake2b512>(&session, b"");
+    let mut prover_state = prover_transcript::<Keccak>(&session, b"");
     let proof = AkitaScheme::prove_batch(
         &prover_setup,
         Vec::new(),
@@ -115,7 +115,7 @@ fn akita_streamed_trace_batch_rejects_swapped_evaluations() {
                         statement: &GroupOpeningClaim<_, _>,
                         proof: &AkitaBatchProof,
                         narg: &[u8]| {
-        let mut verifier_state = verifier_transcript::<Blake2b512>(&session, b"", narg);
+        let mut verifier_state = verifier_transcript::<Keccak>(&session, b"", narg);
         let pending = AkitaScheme::verify_batch(
             setup,
             &[],
@@ -217,7 +217,7 @@ fn akita_streamed_trace_batch_rejects_swapped_evaluations() {
         accumulator: Some(SetupClaimAccumulator::new(polynomial).with_advice(&mut answers)),
         ..Default::default()
     };
-    let mut deferred_state = verifier_transcript::<Blake2b512>(&session, b"", &narg);
+    let mut deferred_state = verifier_transcript::<Keccak>(&session, b"", &narg);
     let pending = AkitaScheme::verify_batch(
         &verifier_setup,
         &[],
@@ -241,7 +241,7 @@ fn akita_streamed_trace_batch_rejects_swapped_evaluations() {
         mode: SetupMode::Defer,
         ..Default::default()
     };
-    let mut deferred_state = verifier_transcript::<Blake2b512>(&session, b"", &narg);
+    let mut deferred_state = verifier_transcript::<Keccak>(&session, b"", &narg);
     assert!(AkitaScheme::verify_batch(
         &verifier_setup,
         &[],
