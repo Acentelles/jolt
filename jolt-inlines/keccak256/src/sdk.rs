@@ -233,7 +233,10 @@ mod tests {
     fn bare_permutation_known_answer() {
         let mut state = [0u64; 25];
         keccak_f1600(&mut state);
-        assert_eq!(state, crate::test_constants::xkcp_vectors::AFTER_ONE_PERMUTATION);
+        assert_eq!(
+            state,
+            crate::test_constants::xkcp_vectors::AFTER_ONE_PERMUTATION
+        );
     }
 
     #[test]

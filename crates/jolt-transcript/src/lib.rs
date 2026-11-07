@@ -94,11 +94,11 @@ use spongefish::instantiations::Hash;
 #[cfg(feature = "transcript-blake2b")]
 pub type Blake2b512 = Hash<Blake2b512Digest>;
 
+#[cfg(all(feature = "keccak-inline", target_arch = "riscv64"))]
+pub use keccak_inline::Keccak;
 /// Spongefish's Keccak-f[1600] duplex sponge.
 #[cfg(all(
     feature = "transcript-keccak",
     not(all(feature = "keccak-inline", target_arch = "riscv64"))
 ))]
 pub use spongefish::instantiations::Keccak;
-#[cfg(all(feature = "keccak-inline", target_arch = "riscv64"))]
-pub use keccak_inline::Keccak;
