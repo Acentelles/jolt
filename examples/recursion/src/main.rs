@@ -971,6 +971,10 @@ fn configured_recursion_program(memory_config: MemoryConfig) -> Program {
     program.add_guest_feature("akita");
     #[cfg(feature = "ntt-inline")]
     program.add_guest_feature("ntt-inline");
+    #[cfg(all(feature = "akita", feature = "prevalidated-catalog"))]
+    program.add_guest_feature("prevalidated-catalog");
+    #[cfg(all(feature = "akita", feature = "digest-nozero"))]
+    program.add_guest_feature("digest-nozero");
     program.add_guest_feature("fast-alloc");
     program.add_guest_feature("hash-inlines");
     program.set_memory_config(memory_config);
@@ -1112,6 +1116,8 @@ sha256sum "$(command -v "${JOLT_PATH:-jolt}")"
 sha256sum "$2"
 env | grep -E '^(ZEROOS_GUEST_RUSTFLAGS|CARGO_PROFILE_[A-Z0-9_]*|RUSTFLAGS|CARGO_ENCODED_RUSTFLAGS|CARGO_BUILD_[A-Z0-9_]*|JOLT_FUNC_NAME)=' | sort || true
 if [ -n "${JOLT_IMMUTABLE_RECIPES_RS:-}" ]; then echo immutable-recipes-tables; sha256sum < "$JOLT_IMMUTABLE_RECIPES_RS"; else echo immutable-recipes-tables-none; fi
+if [ -n "${JOLT_PREVALIDATED_CATALOG_RS:-}" ]; then echo prevalidated-catalog; sha256sum < "$JOLT_PREVALIDATED_CATALOG_RS"; else echo prevalidated-catalog-none; fi
+if [ -n "${AKITA_PREVALIDATED_VIEW_RS:-}" ]; then echo prevalidated-view; sha256sum < "$AKITA_PREVALIDATED_VIEW_RS"; else echo prevalidated-view-none; fi
 echo "$3"
 } | sha256sum | cut -c1-64
 "#;
@@ -1390,6 +1396,11 @@ fn verify_proofs(
     #[cfg(feature = "immutable-recipes")]
     let recipe_tables =
         immutable_recipe_tables::prepare(&all_groups_data, "/tmp/jolt-guest-targets");
+    #[cfg(all(feature = "akita", feature = "prevalidated-catalog"))]
+    let prevalidated_catalog = prevalidated_catalog::prepare(
+        &all_groups_data[..layout.setup_len],
+        "/tmp/jolt-guest-targets",
+    );
     run_recursion_proof(
         guest,
         run_config,
@@ -1399,6 +1410,8 @@ fn verify_proofs(
     );
     #[cfg(feature = "immutable-recipes")]
     immutable_recipe_tables::release(recipe_tables);
+    #[cfg(all(feature = "akita", feature = "prevalidated-catalog"))]
+    prevalidated_catalog::release(prevalidated_catalog);
 }
 
 fn main() {
@@ -1733,3 +1746,6 @@ mod guest_build_tests {
         fs::remove_dir_all(dir).unwrap();
     }
 }
+
+#[cfg(all(feature = "akita", feature = "prevalidated-catalog"))]
+mod prevalidated_catalog;

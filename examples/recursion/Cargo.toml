@@ -8,6 +8,9 @@ name = "recursion"
 path = "src/main.rs"
 
 [features]
+default = ["prevalidated-catalog", "digest-nozero"]
+prevalidated-catalog = ["jolt-akita?/prevalidated-catalog", "dep:sha2", "dep:hex"]
+digest-nozero = ["prevalidated-catalog", "jolt-akita?/digest-nozero"]
 immutable-recipes = [
   "akita",
   "field-inline",
