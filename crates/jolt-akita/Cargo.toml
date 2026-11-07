@@ -26,7 +26,7 @@ akita-algebra = { workspace = true, features = [
 akita-config.workspace = true
 akita-error.workspace = true
 akita-pcs = { workspace = true, default-features = false, features = [
-  "transcript-blake2b",
+  "transcript-keccak",
   "setup-sop-structured",
 ] }
 akita-challenges.workspace = true
