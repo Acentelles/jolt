@@ -387,7 +387,7 @@ mod matrix {
         use jolt_prover::akita::preprocessing::{self, AkitaVc};
         use jolt_prover::JoltBackend;
         use jolt_prover::ProverConfig;
-        use jolt_transcript::{Blake2b512 as Sponge, ProverState, VerifierState};
+        use jolt_transcript::{Keccak as Sponge, ProverState, VerifierState};
         use jolt_witness::{JoltVmWitnessConfig, JoltVmWitnessInputs, TraceBackend};
 
         use crate::support::{self, GuestCase};

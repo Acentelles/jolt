@@ -7,7 +7,7 @@ use jolt_akita::{AkitaChunkProfile, AkitaField, AkitaScheduleArtifacts, AkitaSch
 use jolt_prover::akita::preprocessing::AkitaVc;
 use jolt_prover::JoltBackend;
 use jolt_prover::{akita, ProverConfig};
-use jolt_transcript::{Blake2b512 as Sponge, ProverState, VerifierState};
+use jolt_transcript::{Keccak as Sponge, ProverState, VerifierState};
 use jolt_verifier::proof::JoltProof;
 use jolt_verifier::{JoltVerifierPreprocessing, VerifierError};
 use jolt_witness::field_inline::FieldInlineWitnessOracle;

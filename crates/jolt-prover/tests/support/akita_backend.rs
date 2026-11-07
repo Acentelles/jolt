@@ -25,7 +25,7 @@ use jolt_akita::{AkitaChunkProfile, AkitaField, AkitaScheduleArtifacts, AkitaSch
 use jolt_prover::akita;
 use jolt_prover::akita::preprocessing::{AkitaProverPreprocessing, AkitaVc};
 use jolt_prover::ProverConfig;
-use jolt_transcript::{Blake2b512 as Sponge, ProverState};
+use jolt_transcript::{Keccak as Sponge, ProverState};
 use jolt_witness::{JoltVmWitnessConfig, JoltVmWitnessInputs, TraceBackend};
 
 struct UnreadableWitness;

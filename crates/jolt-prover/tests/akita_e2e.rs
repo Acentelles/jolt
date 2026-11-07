@@ -42,7 +42,7 @@ mod akita_tests {
     use jolt_prover::akita::witness::commit_advice;
     use jolt_prover::JoltBackend;
     use jolt_prover::{PreprocessingError, ProverConfig, ProverError};
-    use jolt_transcript::{Blake2b512 as Sponge, ProverState, VerifierState};
+    use jolt_transcript::{Keccak as Sponge, ProverState, VerifierState};
     use jolt_verifier::proof::{ClearProofClaims, JoltProof, JoltProofClaims};
     use jolt_verifier::stages::pow::PowSite;
     use jolt_verifier::{JoltVerifierPreprocessing, VerifierError};
