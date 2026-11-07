@@ -5,7 +5,7 @@ power-of-two padded trace. A RISC-V recursion guest verifies both direct Akita
 proofs and publishes every deferred setup query and answer in its public output.
 The harness measures execution without proving the outer execution.
 
-Akita is pinned to `28602b086d65f12fa5b1b2784d7dbbe560e9a642` from
+Akita is pinned to `b86e2218d20c6d10ee8ff5999f0cb145230d8fe5` from
 remote `main` in the workspace manifest and lockfile.
 Regenerate inputs when that pin changes.
 The experiment generates one exact direct scalar catalog for the inner trace shape
