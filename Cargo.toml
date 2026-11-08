@@ -312,18 +312,18 @@ dory = { package = "dory-pcs", version = "0.5.0", features = [
   "disk-persistence",
   "zk",
 ] }
-akita-algebra = { git = "https://github.com/Acentelles/akita-lz.git", rev = "dd7bd6a03b73c06b72320ea40386761489ec9f89", default-features = false }
-akita-config = { git = "https://github.com/Acentelles/akita-lz.git", rev = "dd7bd6a03b73c06b72320ea40386761489ec9f89", default-features = false }
-akita-error = { git = "https://github.com/Acentelles/akita-lz.git", rev = "dd7bd6a03b73c06b72320ea40386761489ec9f89", default-features = false }
-akita-pcs = { git = "https://github.com/Acentelles/akita-lz.git", rev = "dd7bd6a03b73c06b72320ea40386761489ec9f89", default-features = false }
-akita-planner = { git = "https://github.com/Acentelles/akita-lz.git", rev = "dd7bd6a03b73c06b72320ea40386761489ec9f89", default-features = false }
-akita-schedules = { git = "https://github.com/Acentelles/akita-lz.git", rev = "dd7bd6a03b73c06b72320ea40386761489ec9f89", default-features = false }
-akita-challenges = { git = "https://github.com/Acentelles/akita-lz.git", rev = "dd7bd6a03b73c06b72320ea40386761489ec9f89", default-features = false }
-akita-types = { git = "https://github.com/Acentelles/akita-lz.git", rev = "dd7bd6a03b73c06b72320ea40386761489ec9f89", default-features = false }
-akita-params = { git = "https://github.com/Acentelles/akita-lz.git", rev = "dd7bd6a03b73c06b72320ea40386761489ec9f89", default-features = false }
-akita-transcript = { git = "https://github.com/Acentelles/akita-lz.git", rev = "dd7bd6a03b73c06b72320ea40386761489ec9f89", default-features = false }
-akita-prover = { git = "https://github.com/Acentelles/akita-lz.git", rev = "dd7bd6a03b73c06b72320ea40386761489ec9f89", default-features = false }
-akita-verifier = { git = "https://github.com/Acentelles/akita-lz.git", rev = "dd7bd6a03b73c06b72320ea40386761489ec9f89", default-features = false }
+akita-algebra = { git = "https://github.com/Acentelles/akita-lz.git", rev = "f94bc579313b408fa22ae6192c35cc39d002de25", default-features = false }
+akita-config = { git = "https://github.com/Acentelles/akita-lz.git", rev = "f94bc579313b408fa22ae6192c35cc39d002de25", default-features = false }
+akita-error = { git = "https://github.com/Acentelles/akita-lz.git", rev = "f94bc579313b408fa22ae6192c35cc39d002de25", default-features = false }
+akita-pcs = { git = "https://github.com/Acentelles/akita-lz.git", rev = "f94bc579313b408fa22ae6192c35cc39d002de25", default-features = false }
+akita-planner = { git = "https://github.com/Acentelles/akita-lz.git", rev = "f94bc579313b408fa22ae6192c35cc39d002de25", default-features = false }
+akita-schedules = { git = "https://github.com/Acentelles/akita-lz.git", rev = "f94bc579313b408fa22ae6192c35cc39d002de25", default-features = false }
+akita-challenges = { git = "https://github.com/Acentelles/akita-lz.git", rev = "f94bc579313b408fa22ae6192c35cc39d002de25", default-features = false }
+akita-types = { git = "https://github.com/Acentelles/akita-lz.git", rev = "f94bc579313b408fa22ae6192c35cc39d002de25", default-features = false }
+akita-params = { git = "https://github.com/Acentelles/akita-lz.git", rev = "f94bc579313b408fa22ae6192c35cc39d002de25", default-features = false }
+akita-transcript = { git = "https://github.com/Acentelles/akita-lz.git", rev = "f94bc579313b408fa22ae6192c35cc39d002de25", default-features = false }
+akita-prover = { git = "https://github.com/Acentelles/akita-lz.git", rev = "f94bc579313b408fa22ae6192c35cc39d002de25", default-features = false }
+akita-verifier = { git = "https://github.com/Acentelles/akita-lz.git", rev = "f94bc579313b408fa22ae6192c35cc39d002de25", default-features = false }
 
 # Core Utilities
 clap = { version = "4.6.1", features = ["derive"] }
