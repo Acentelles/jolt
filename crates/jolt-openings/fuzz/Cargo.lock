@@ -573,6 +573,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "jolt-inlines-keccak256"
+version = "0.1.0"
+
+[[package]]
 name = "jolt-openings"
 version = "0.1.0"
 dependencies = [
@@ -640,8 +644,11 @@ dependencies = [
  "blake2 0.11.0-rc.6",
  "getrandom 0.4.3",
  "jolt-field",
+ "jolt-inlines-keccak256",
+ "keccak",
  "sha3",
  "shake",
+ "sponge-cursor",
  "spongefish",
 ]
 
@@ -1110,10 +1117,6 @@ dependencies = [
 
 [[patch.unused]]
 name = "jolt-inlines-blake2"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "jolt-inlines-keccak256"
 version = "0.1.0"
 
 [[patch.unused]]

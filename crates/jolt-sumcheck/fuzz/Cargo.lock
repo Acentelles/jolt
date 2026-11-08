@@ -425,6 +425,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "jolt-inlines-keccak256"
+version = "0.1.0"
+
+[[package]]
 name = "jolt-poly"
 version = "0.1.0"
 dependencies = [
@@ -471,8 +475,11 @@ dependencies = [
  "blake2",
  "getrandom",
  "jolt-field",
+ "jolt-inlines-keccak256",
+ "keccak",
  "sha3",
  "shake",
+ "sponge-cursor",
  "spongefish",
 ]
 

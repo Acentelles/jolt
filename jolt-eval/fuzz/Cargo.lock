@@ -1552,9 +1552,12 @@ dependencies = [
  "blake2 0.11.0-rc.6",
  "getrandom 0.4.2",
  "jolt-field",
+ "jolt-inlines-keccak256",
+ "keccak",
  "light-poseidon",
  "sha3",
  "shake",
+ "sponge-cursor",
  "spongefish",
 ]
 

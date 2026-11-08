@@ -459,6 +459,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "jolt-inlines-keccak256"
+version = "0.1.0"
+
+[[package]]
 name = "jolt-poly"
 version = "0.1.0"
 dependencies = [
@@ -478,8 +482,11 @@ version = "0.1.0"
 dependencies = [
  "getrandom",
  "jolt-field",
+ "jolt-inlines-keccak256",
+ "keccak",
  "sha3",
  "shake",
+ "sponge-cursor",
  "spongefish",
 ]
 
@@ -502,9 +509,9 @@ dependencies = [
 
 [[package]]
 name = "keccak"
-version = "0.2.2"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d8f198d1db720e4940b5a493201d199d9f24f568f8f746bd13706243a2f71598"
+checksum = "9e24a010dd405bd7ed803e5253182815b41bf2e6a80cc3bfc066658e03a198aa"
 dependencies = [
  "cfg-if",
  "cpufeatures",

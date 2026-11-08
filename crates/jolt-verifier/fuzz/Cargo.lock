@@ -633,6 +633,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "jolt-inlines-keccak256"
+version = "0.1.0"
+
+[[package]]
 name = "jolt-lookup-tables"
 version = "0.1.0"
 dependencies = [
@@ -742,8 +746,11 @@ dependencies = [
  "ark-ff",
  "getrandom 0.4.3",
  "jolt-field",
+ "jolt-inlines-keccak256",
+ "keccak",
  "sha3",
  "shake",
+ "sponge-cursor",
  "spongefish",
 ]
 
@@ -1340,10 +1347,6 @@ dependencies = [
 
 [[patch.unused]]
 name = "jolt-inlines-blake2"
-version = "0.1.0"
-
-[[patch.unused]]
-name = "jolt-inlines-keccak256"
 version = "0.1.0"
 
 [[patch.unused]]
