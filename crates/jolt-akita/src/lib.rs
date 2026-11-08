@@ -78,3 +78,11 @@ pub use trace_onehot::{no_selected_row, TraceOneHotColumn, TraceOneHotRows};
 pub use adapters::{jolt_to_akita_evals, reverse_point};
 
 pub use verifier_resources::AkitaVerifierResources;
+
+mod prevalidated_catalog;
+pub use prevalidated_catalog::{
+    EMPTY_PREVALIDATED_CATALOG_SOURCE, EMPTY_PREVALIDATED_VIEW_SOURCE,
+    PREVALIDATED_CATALOG_VARIABLE, PREVALIDATED_VIEW_VARIABLE,
+};
+
+pub use akita_algebra::offset_eq::carry_graph;

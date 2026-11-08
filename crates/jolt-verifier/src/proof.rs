@@ -73,6 +73,7 @@ pub struct JoltProof<
     /// from its transcript. Every message of the current protocol is a field
     /// of this struct absorbed as a public message, so the prover leaves it
     /// empty; the verifier still requires it to be read to its end.
+    #[serde(with = "serde_bytes")]
     pub narg: Vec<u8>,
 }
 
