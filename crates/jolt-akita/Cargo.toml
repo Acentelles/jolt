@@ -9,12 +9,6 @@ description = "Akita batch opening adapter for the Jolt zkVM"
 workspace = true
 
 [features]
-carry-graph = ["akita-algebra/carry-graph"]
-prevalidated-catalog = [
-  "akita-config/prevalidated-catalog",
-  "akita-schedules/prevalidated-catalog",
-]
-digest-nozero = ["prevalidated-catalog", "akita-schedules/digest-nozero"]
 default = ["parallel"]
 parallel = ["akita-pcs/parallel"]
 blake2-inline = ["jolt-transcript/blake2-inline"]

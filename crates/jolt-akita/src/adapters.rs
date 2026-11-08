@@ -778,7 +778,6 @@ impl AkitaVerifierSetup {
                         AkitaOneHotBackendScheme::from_artifact(family, bytes)
                     }
                     CatalogSource::VerifierView(view) => {
-                        #[cfg(feature = "prevalidated-catalog")]
                         if let Some(scheme) =
                             crate::prevalidated_catalog::one_hot_scheme(family, view)
                         {
@@ -1467,7 +1466,7 @@ pub(crate) fn prove_failed(error: impl ToString) -> OpeningsError {
     OpeningsError::ProveFailed(error.to_string())
 }
 
-#[cfg(all(feature = "prevalidated-catalog", not(target_arch = "riscv64")))]
+#[cfg(not(target_arch = "riscv64"))]
 impl AkitaVerifierSetup {
     /// Host: the source of the prevalidated one-hot catalog file for a guest
     /// that embeds this setup (see the `prevalidated_catalog` module). Needs

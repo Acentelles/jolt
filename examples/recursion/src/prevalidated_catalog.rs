@@ -1,15 +1,7 @@
-//! Prevalidated one-hot catalog view for the verifier-guest build (feature
-//! `prevalidated-catalog`, default on with `akita`).
+//! Prevalidated catalogs for every Akita verifier-guest build.
 //!
-//! Before the guest is built, the host decodes the setup section of the
-//! stream it is about to embed (never a proof), attaches its payloads and
-//! loads the prepared one-hot catalog view through Akita's canonical loader,
-//! recording what loading derived. It writes the generated file under the
-//! guest target directory by content digest and names it in
-//! `JOLT_PREVALIDATED_CATALOG_RS` for that build. If anything fails, or
-//! `RECURSION_PREVALIDATED_CATALOG=off`, it names a file with no view: every
-//! lookup misses and the guest keeps the canonical path. A caller-set variable
-//! is kept.
+//! A generated record is used only for its exact validated setup bytes.
+//! Unsupported inputs retain canonical validation. Caller-supplied sources are kept.
 
 use crate::{read_raw, read_record, GuestVerifierPreprocessing};
 use jolt_akita::{
@@ -21,8 +13,6 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use tracing::info;
 
-const SWITCH: &str = "RECURSION_PREVALIDATED_CATALOG";
-
 /// Names the prevalidated catalog file for the next guest build. `setup` is
 /// the stream's setup section. Returns whether the variable was set here.
 pub(crate) fn prepare(setup: &[u8], target_dir: &str) -> bool {
@@ -32,22 +22,14 @@ pub(crate) fn prepare(setup: &[u8], target_dir: &str) -> bool {
         info!("  prevalidated catalog: caller-supplied {PREVALIDATED_CATALOG_VARIABLE}");
         return false;
     }
-    let source = if std::env::var(SWITCH).as_deref() == Ok("off") {
-        info!("  prevalidated catalog: off; no view, canonical path");
-        (
-            EMPTY_PREVALIDATED_CATALOG_SOURCE.to_owned(),
-            EMPTY_PREVALIDATED_VIEW_SOURCE.to_owned(),
-        )
-    } else {
-        match generate(setup) {
-            Ok(source) => source,
-            Err(reason) => {
-                info!("  prevalidated catalog: none ({reason}); canonical path");
-                (
-                    EMPTY_PREVALIDATED_CATALOG_SOURCE.to_owned(),
-                    EMPTY_PREVALIDATED_VIEW_SOURCE.to_owned(),
-                )
-            }
+    let source = match generate(setup) {
+        Ok(source) => source,
+        Err(reason) => {
+            info!("  prevalidated catalog: none ({reason}); canonical path");
+            (
+                EMPTY_PREVALIDATED_CATALOG_SOURCE.to_owned(),
+                EMPTY_PREVALIDATED_VIEW_SOURCE.to_owned(),
+            )
         }
     };
     match write(&source.0, &source.1, target_dir) {

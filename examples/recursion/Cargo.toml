@@ -8,10 +8,6 @@ name = "recursion"
 path = "src/main.rs"
 
 [features]
-carry-graph = ["jolt-akita?/carry-graph"]
-default = ["prevalidated-catalog", "digest-nozero", "carry-graph"]
-prevalidated-catalog = ["jolt-akita?/prevalidated-catalog", "dep:sha2", "dep:hex"]
-digest-nozero = ["prevalidated-catalog", "jolt-akita?/digest-nozero"]
 immutable-recipes = [
   "akita",
   "field-inline",
@@ -26,6 +22,8 @@ immutable-recipes-record = ["immutable-recipes", "dep:serde_json"]
 ntt-inline = ["akita", "dep:jolt-inlines-ntt"]
 field-inline = ["jolt-sdk/field-inline"]
 akita = [
+  "dep:sha2",
+  "dep:hex",
   "jolt-sdk/akita",
   "dep:jolt-akita",
   "dep:jolt-program",

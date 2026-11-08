@@ -4,9 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-carry-graph = ["akita", "jolt-akita/carry-graph"]
-prevalidated-catalog = ["akita", "jolt-akita/prevalidated-catalog"]
-digest-nozero = ["akita", "jolt-akita/digest-nozero"]
 immutable-recipes = [
   "akita",
   "field-inline-fp128",

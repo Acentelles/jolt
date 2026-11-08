@@ -1,14 +1,7 @@
-//! Compiled carry-state graphs for the verifier-guest build (feature
-//! `carry-graph`, default on with `akita`).
+//! Compiled carry-state graphs for every Akita verifier-guest build.
 //!
-//! Before the guest is built, the host reads the padded trace length of the
-//! proofs in the stream it is about to verify and emits Akita's fixed
-//! carry-state graph source for that size. It writes the source under the
-//! guest target directory and names it in `AKITA_CARRY_GRAPH_RS` for that
-//! build. If the proofs do not share one supported size, or
-//! `RECURSION_CARRY_GRAPH=off`, it names a file with no graph: every lookup
-//! misses and the guest keeps the recurrence path. A caller-set variable is
-//! kept. The graphs are fixed per size and never taken from a proof's values.
+//! Graphs depend only on the shared padded trace size. Unsupported sizes
+//! retain the recurrence path. Caller-supplied graph sources are kept.
 
 use crate::{read_raw, read_record, GuestProof, JoltDevice};
 use jolt_akita::carry_graph::emit_fixed_source;
@@ -17,8 +10,6 @@ use std::path::{Path, PathBuf};
 use tracing::info;
 
 const VARIABLE: &str = "AKITA_CARRY_GRAPH_RS";
-/// `RECURSION_CARRY_GRAPH=off` skips emission: the guest gets no graph.
-const SWITCH: &str = "RECURSION_CARRY_GRAPH";
 /// No graph, in the emitted file's form: every lookup misses.
 const EMPTY: &str = "pub(super) static GRAPHS: &[Graph<'static>] = &[\n];\n";
 
@@ -29,16 +20,11 @@ pub(crate) fn prepare(stream: &[u8], target_dir: &str) -> bool {
         info!("  carry graph: caller-supplied {VARIABLE}");
         return false;
     }
-    let (name, source) = if std::env::var(SWITCH).as_deref() == Ok("off") {
-        info!("  carry graph: off; no graph, recurrence path");
-        ("none".to_owned(), EMPTY.to_owned())
-    } else {
-        match generate(stream) {
-            Ok((exponent, source)) => (exponent.to_string(), source),
-            Err(reason) => {
-                info!("  carry graph: none ({reason}); recurrence path");
-                ("none".to_owned(), EMPTY.to_owned())
-            }
+    let (name, source) = match generate(stream) {
+        Ok((exponent, source)) => (exponent.to_string(), source),
+        Err(reason) => {
+            info!("  carry graph: none ({reason}); recurrence path");
+            ("none".to_owned(), EMPTY.to_owned())
         }
     };
     match write(&name, &source, target_dir) {

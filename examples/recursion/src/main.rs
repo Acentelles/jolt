@@ -971,12 +971,6 @@ fn configured_recursion_program(memory_config: MemoryConfig) -> Program {
     program.add_guest_feature("akita");
     #[cfg(feature = "ntt-inline")]
     program.add_guest_feature("ntt-inline");
-    #[cfg(all(feature = "akita", feature = "prevalidated-catalog"))]
-    program.add_guest_feature("prevalidated-catalog");
-    #[cfg(all(feature = "akita", feature = "digest-nozero"))]
-    program.add_guest_feature("digest-nozero");
-    #[cfg(all(feature = "akita", feature = "carry-graph"))]
-    program.add_guest_feature("carry-graph");
     program.add_guest_feature("fast-alloc");
     program.add_guest_feature("hash-inlines");
     program.set_memory_config(memory_config);
@@ -1399,12 +1393,12 @@ fn verify_proofs(
     #[cfg(feature = "immutable-recipes")]
     let recipe_tables =
         immutable_recipe_tables::prepare(&all_groups_data, "/tmp/jolt-guest-targets");
-    #[cfg(all(feature = "akita", feature = "prevalidated-catalog"))]
+    #[cfg(feature = "akita")]
     let prevalidated_catalog = prevalidated_catalog::prepare(
         &all_groups_data[..layout.setup_len],
         "/tmp/jolt-guest-targets",
     );
-    #[cfg(all(feature = "akita", feature = "carry-graph"))]
+    #[cfg(feature = "akita")]
     let carry_graph = carry_graph_source::prepare(&all_groups_data, "/tmp/jolt-guest-targets");
     run_recursion_proof(
         guest,
@@ -1415,9 +1409,9 @@ fn verify_proofs(
     );
     #[cfg(feature = "immutable-recipes")]
     immutable_recipe_tables::release(recipe_tables);
-    #[cfg(all(feature = "akita", feature = "prevalidated-catalog"))]
+    #[cfg(feature = "akita")]
     prevalidated_catalog::release(prevalidated_catalog);
-    #[cfg(all(feature = "akita", feature = "carry-graph"))]
+    #[cfg(feature = "akita")]
     carry_graph_source::release(carry_graph);
 }
 
@@ -1754,8 +1748,8 @@ mod guest_build_tests {
     }
 }
 
-#[cfg(all(feature = "akita", feature = "prevalidated-catalog"))]
+#[cfg(feature = "akita")]
 mod prevalidated_catalog;
 
-#[cfg(all(feature = "akita", feature = "carry-graph"))]
+#[cfg(feature = "akita")]
 mod carry_graph_source;

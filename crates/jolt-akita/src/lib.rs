@@ -79,13 +79,10 @@ pub use adapters::{jolt_to_akita_evals, reverse_point};
 
 pub use verifier_resources::AkitaVerifierResources;
 
-#[cfg(feature = "prevalidated-catalog")]
 mod prevalidated_catalog;
-#[cfg(feature = "prevalidated-catalog")]
 pub use prevalidated_catalog::{
     EMPTY_PREVALIDATED_CATALOG_SOURCE, EMPTY_PREVALIDATED_VIEW_SOURCE,
     PREVALIDATED_CATALOG_VARIABLE, PREVALIDATED_VIEW_VARIABLE,
 };
 
-#[cfg(feature = "carry-graph")]
 pub use akita_algebra::offset_eq::carry_graph;

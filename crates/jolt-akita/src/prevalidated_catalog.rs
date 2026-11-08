@@ -1,5 +1,4 @@
-//! Prevalidated one-hot catalog views (feature `prevalidated-catalog`, default
-//! off).
+//! Prevalidated one-hot catalog views.
 //!
 //! Loading the prepared one-hot catalog view repeats, on every verification,
 //! the catalog's semantic audit, its digest over every row identity and a
@@ -60,7 +59,7 @@ fn rebuild_one<Cfg: CommitmentConfig>(
 
 #[cfg(target_arch = "riscv64")]
 mod compiled {
-    include!(env!("JOLT_PREVALIDATED_CATALOG_RS"));
+    include!(concat!(env!("OUT_DIR"), "/prevalidated_catalog.rs"));
 }
 #[cfg(not(target_arch = "riscv64"))]
 mod compiled {
