@@ -13,7 +13,7 @@ use core::fmt;
 use keccak::Keccak;
 use sha3::digest::{
     common::BlockSizeUser,
-    consts::{U32, U136},
+    consts::{U136, U32},
     FixedOutput, FixedOutputReset, HashMarker, Output, OutputSizeUser, Reset, Update,
 };
 use sponge_cursor::SpongeCursor;
@@ -55,7 +55,13 @@ impl DigestHasher {
         self.state[pos / 8] ^= suffix << (8 * (pos % 8));
         self.state[16] ^= 1 << 63;
         permute(&mut self.state);
-        for (bytes, lane) in output.as_mut_slice().as_chunks_mut::<8>().0.iter_mut().zip(self.state) {
+        for (bytes, lane) in output
+            .as_mut_slice()
+            .as_chunks_mut::<8>()
+            .0
+            .iter_mut()
+            .zip(self.state)
+        {
             *bytes = lane.to_le_bytes();
         }
     }
@@ -138,10 +144,38 @@ mod tests {
     fn sha3_rate_boundaries_and_split_updates() {
         // Frozen SHA3-256 vectors, independently generated with Python hashlib.
         let vectors = [
-            (135, "fded8fd9d6551c601eeb3b7c6bc5e5cfd8aad1d015b7e9aaa9c9b9475231d5e2"),
-            (136, "cf3ccff92480a29160c2d38317c430e14749bfee1788106957dfe73f8c4930e5"),
-            (137, "ce9d7dc90913ee5d92745019479a5352c6d6279bef18ed07dc0a83ee8084daca"),
-            (272, "b7ccd55b6c2c3fa144c9e0624059294975a348b02f321abe289701d3012f7794"),
+            (
+                135,
+                [
+                    0xfd, 0xed, 0x8f, 0xd9, 0xd6, 0x55, 0x1c, 0x60, 0x1e, 0xeb, 0x3b, 0x7c, 0x6b,
+                    0xc5, 0xe5, 0xcf, 0xd8, 0xaa, 0xd1, 0xd0, 0x15, 0xb7, 0xe9, 0xaa, 0xa9, 0xc9,
+                    0xb9, 0x47, 0x52, 0x31, 0xd5, 0xe2,
+                ],
+            ),
+            (
+                136,
+                [
+                    0xcf, 0x3c, 0xcf, 0xf9, 0x24, 0x80, 0xa2, 0x91, 0x60, 0xc2, 0xd3, 0x83, 0x17,
+                    0xc4, 0x30, 0xe1, 0x47, 0x49, 0xbf, 0xee, 0x17, 0x88, 0x10, 0x69, 0x57, 0xdf,
+                    0xe7, 0x3f, 0x8c, 0x49, 0x30, 0xe5,
+                ],
+            ),
+            (
+                137,
+                [
+                    0xce, 0x9d, 0x7d, 0xc9, 0x09, 0x13, 0xee, 0x5d, 0x92, 0x74, 0x50, 0x19, 0x47,
+                    0x9a, 0x53, 0x52, 0xc6, 0xd6, 0x27, 0x9b, 0xef, 0x18, 0xed, 0x07, 0xdc, 0x0a,
+                    0x83, 0xee, 0x80, 0x84, 0xda, 0xca,
+                ],
+            ),
+            (
+                272,
+                [
+                    0xb7, 0xcc, 0xd5, 0x5b, 0x6c, 0x2c, 0x3f, 0xa1, 0x44, 0xc9, 0xe0, 0x62, 0x40,
+                    0x59, 0x29, 0x49, 0x75, 0xa3, 0x48, 0xb0, 0x2f, 0x32, 0x1a, 0xbe, 0x28, 0x97,
+                    0x01, 0xd3, 0x01, 0x2f, 0x77, 0x94,
+                ],
+            ),
         ];
         for (length, expected) in vectors {
             let input: Vec<u8> = (0..length).map(|i| (i % 251) as u8).collect();
@@ -153,11 +187,20 @@ mod tests {
                 let cloned = hasher.clone().finalize();
                 let output = hasher.finalize_reset();
                 assert_eq!(cloned, output);
-                let hex: String = output.iter().map(|byte| format!("{byte:02x}")).collect();
-                assert_eq!(hex, expected, "length {length}, split {split}");
+                assert_eq!(
+                    output.as_slice(),
+                    expected,
+                    "length {length}, split {split}"
+                );
                 hasher.update(b"abc");
-                let hex: String = hasher.finalize().iter().map(|byte| format!("{byte:02x}")).collect();
-                assert_eq!(hex, "3a985da74fe225b2045c172d6bd390bd855f086e3e9d525b46bfe24511431532");
+                assert_eq!(
+                    hasher.finalize().as_slice(),
+                    [
+                        0x3a, 0x98, 0x5d, 0xa7, 0x4f, 0xe2, 0x25, 0xb2, 0x04, 0x5c, 0x17, 0x2d,
+                        0x6b, 0xd3, 0x90, 0xbd, 0x85, 0x5f, 0x08, 0x6e, 0x3e, 0x9d, 0x52, 0x5b,
+                        0x46, 0xbf, 0xe2, 0x45, 0x11, 0x43, 0x15, 0x32
+                    ]
+                );
             }
         }
     }
