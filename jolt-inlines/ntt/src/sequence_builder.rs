@@ -41,21 +41,35 @@ impl NttBuilder {
         }
         // Every stage's first twiddle is the Montgomery form of 1, so a
         // product with it reduces a butterfly sum in five rows.
-        self.asm.emit_ld(Kind::LW, one, twiddles, 0);
+        self.asm.emit_ld(Kind::LD, one, twiddles, 0);
+        self.asm.emit_i(Kind::ADDIW, one, one, 0);
         let mut len = DEGREE / 2;
         while len != 0 {
-            // The stage starts at an odd i32 offset except at len=1; LW
-            // expansion handles that alignment without loading outside the table.
             for j in 0..len {
-                self.asm
-                    .emit_ld(Kind::LW, temp, twiddles, (len - 1 + j) as i64 * 4);
+                let twiddle = if len == 1 {
+                    one
+                } else {
+                    let index = len - 1 + j;
+                    // forward_ntt64 establishes doubleword alignment. Each
+                    // pair stays inside the table; mont_mul preserves weight.
+                    if j == 0 || index & 1 == 0 {
+                        self.asm
+                            .emit_ld(Kind::LD, weight, twiddles, (index & !1) as i64 * 4);
+                    }
+                    if index & 1 == 0 {
+                        self.asm.emit_i(Kind::ADDIW, temp, weight, 0);
+                    } else {
+                        self.asm.emit_i(Kind::SRAI, temp, weight, 32);
+                    }
+                    temp
+                };
                 for start in (0..DEGREE).step_by(2 * len) {
                     let u = *self.values[start + j];
                     let v = *self.values[start + j + len];
                     self.asm.emit_r(Kind::SUBW, psi, u, v);
                     self.asm.emit_r(Kind::ADDW, u, u, v);
                     self.mont_mul(u, u, one);
-                    self.mont_mul(v, psi, temp);
+                    self.mont_mul(v, psi, twiddle);
                 }
             }
             len /= 2;

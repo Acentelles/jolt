@@ -90,18 +90,7 @@ impl InlineSpec for ForwardNtt64 {
     }
     fn load(h: &mut InlineTestHarness, state: &Self::Input) {
         let (psi, twiddles, pinv) = parameters();
-        let mut words = vec![
-            DRAM_BASE + 24,
-            DRAM_BASE + 24 + DEGREE as u64 * 4,
-            P as u64 | (u64::from(pinv as u32) << 32),
-        ];
-        for table in [psi, twiddles] {
-            for pair in table.chunks_exact(2) {
-                words.push(u64::from(pair[0] as u32) | (u64::from(pair[1] as u32) << 32));
-            }
-        }
-        h.load_input64(&words);
-        h.load_state32(&state.map(|a| a as u32));
+        load_ntt(h, state, &psi, &twiddles, pinv);
     }
     fn read(h: &mut InlineTestHarness) -> Self::Output {
         h.read_output32(DEGREE)
@@ -110,6 +99,51 @@ impl InlineSpec for ForwardNtt64 {
             .collect::<Vec<_>>()
             .try_into()
             .unwrap()
+    }
+}
+
+fn load_ntt(
+    h: &mut InlineTestHarness,
+    state: &[i32; DEGREE],
+    psi: &[i32; DEGREE],
+    twiddles: &[i32; DEGREE],
+    pinv: i32,
+) {
+    let mut words = vec![
+        DRAM_BASE + 24,
+        DRAM_BASE + 24 + DEGREE as u64 * 4,
+        P as u64 | (u64::from(pinv as u32) << 32),
+    ];
+    for table in [psi, twiddles] {
+        for pair in table.chunks_exact(2) {
+            words.push(u64::from(pair[0] as u32) | (u64::from(pair[1] as u32) << 32));
+        }
+    }
+    h.load_input64(&words);
+    h.load_state32(&state.map(|a| a as u32));
+}
+
+#[test]
+fn expanded_ntt_preserves_signed_twiddle_words() {
+    use tracer::instruction::RISCVTrace;
+    let (psi, _, pinv) = parameters();
+    let edges = [i32::MIN, i32::MAX, -1, 0, 1, -123_456_789];
+    let state = core::array::from_fn(|i| edges[i % edges.len()]);
+    for shift in 0..edges.len() {
+        let twiddles = core::array::from_fn(|i| edges[(i + shift) % edges.len()]);
+        let mut expected = state;
+        forward_ntt64(&mut expected, &psi, &twiddles, P as i32, pinv);
+        let mut harness = ForwardNtt64::harness();
+        harness.setup_registers();
+        load_ntt(&mut harness, &state, &psi, &twiddles, pinv);
+        let mut rows = Vec::new();
+        ForwardNtt64::instruction().trace(&mut harness.cpu, Some(&mut rows));
+        let actual = harness
+            .read_output32(DEGREE)
+            .into_iter()
+            .map(|word| word as i32)
+            .collect::<Vec<_>>();
+        assert_eq!(actual, expected);
     }
 }
 
