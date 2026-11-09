@@ -49,10 +49,10 @@ use super::{emit, r_word, FUNCT3_ADD, FUNCT3_MUL, REG_A, REG_B, REG_SUM};
     for (block_rows, block_weights) in rows.chunks(5).zip(weights.chunks(5)) {
         match block_rows {
             [r0, r1, r2, r3, r4] => { if N == 2 && width == 64 { triplet_block([r0, r1, r2, r3, r4]); } else { block!(r0 => 0, r1 => 1, r2 => 2, r3 => 3, r4 => 4); } },
-            [r0, r1, r2, r3] => block!(r0 => 0, r1 => 1, r2 => 2, r3 => 3),
-            [r0, r1, r2] => block!(r0 => 0, r1 => 1, r2 => 2),
-            [r0, r1] => block!(r0 => 0, r1 => 1),
-            [r0] => block!(r0 => 0),
+            [r0, r1, r2, r3] => { if N == 2 && width == 64 { triplet_block([r0, r1, r2, r3]); } else { block!(r0 => 0, r1 => 1, r2 => 2, r3 => 3); } },
+            [r0, r1, r2] => { if N == 2 && width == 64 { triplet_block([r0, r1, r2]); } else { block!(r0 => 0, r1 => 1, r2 => 2); } },
+            [r0, r1] => { if N == 2 && width == 64 { triplet_block([r0, r1]); } else { block!(r0 => 0, r1 => 1); } },
+            [r0] => { if N == 2 && width == 64 { triplet_block([r0]); } else { block!(r0 => 0); } },
             _ => {}
         }
         for (k, weight) in block_weights.iter().enumerate() {
@@ -66,12 +66,11 @@ use super::{emit, r_word, FUNCT3_ADD, FUNCT3_MUL, REG_A, REG_B, REG_SUM};
 
 use jolt_riscv::field_inline_load_accumulate_from_memory_funct7;
 
-/// The caller has checked five rows of 64 two-limb elements. REG_A holds
+/// The caller has checked one to five rows of 64 two-limb elements. REG_A holds
 /// alpha; registers 9..=13 belong to these row accumulators. The existing
 /// memory instruction's offsets cover three coefficients from one base.
 #[inline(always)]
-fn triplet_block<const N: usize>(rows: [&[[u64; N]]; 5]) {
-    let [r0, r1, r2, r3, r4] = rows;
+fn triplet_block<const N: usize, const M: usize>(rows: [&[[u64; N]]; M]) {
     macro_rules! word {
         ($op:expr, $rd:expr, $a:expr, $b:expr) => {
             // SAFETY: fixed field operations within the caller's register lease.
@@ -128,8 +127,20 @@ fn triplet_block<const N: usize>(rows: [&[[u64; N]]; 5]) {
             advance!(base, $k, 0);
         )+};
     }
-    initialize!(r0 => 0, r1 => 1, r2 => 2, r3 => 3, r4 => 4);
-    for j in (0..63).step_by(3).rev() {
-        group!(j; r0 => 0, r1 => 1, r2 => 2, r3 => 3, r4 => 4);
+    macro_rules! evaluate {
+        ($($row:ident => $k:literal),+) => {{
+            initialize!($($row => $k),+);
+            for j in (0..63).step_by(3).rev() {
+                group!(j; $($row => $k),+);
+            }
+        }};
+    }
+    match rows.as_slice() {
+        [r0, r1, r2, r3, r4] => evaluate!(r0 => 0, r1 => 1, r2 => 2, r3 => 3, r4 => 4),
+        [r0, r1, r2, r3] => evaluate!(r0 => 0, r1 => 1, r2 => 2, r3 => 3),
+        [r0, r1, r2] => evaluate!(r0 => 0, r1 => 1, r2 => 2),
+        [r0, r1] => evaluate!(r0 => 0, r1 => 1),
+        [r0] => evaluate!(r0 => 0),
+        _ => {}
     }
 }
