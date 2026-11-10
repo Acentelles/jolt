@@ -93,7 +93,7 @@ dependencies = [
 [[package]]
 name = "akita-algebra"
 version = "0.1.0"
-source = "git+https://github.com/Acentelles/akita-lz.git?rev=88d30390cecfca015ff8498a98ae1392874eed65#88d30390cecfca015ff8498a98ae1392874eed65"
+source = "git+https://github.com/Acentelles/akita-lz.git?rev=fe6cb1937cad1aebba5c966dad6b68480229a6d3#fe6cb1937cad1aebba5c966dad6b68480229a6d3"
 dependencies = [
  "akita-error",
  "akita-serialization",
@@ -108,7 +108,7 @@ dependencies = [
 [[package]]
 name = "akita-challenges"
 version = "0.1.0"
-source = "git+https://github.com/Acentelles/akita-lz.git?rev=88d30390cecfca015ff8498a98ae1392874eed65#88d30390cecfca015ff8498a98ae1392874eed65"
+source = "git+https://github.com/Acentelles/akita-lz.git?rev=fe6cb1937cad1aebba5c966dad6b68480229a6d3#fe6cb1937cad1aebba5c966dad6b68480229a6d3"
 dependencies = [
  "akita-error",
  "akita-transcript",
@@ -120,7 +120,7 @@ dependencies = [
 [[package]]
 name = "akita-config"
 version = "0.1.0"
-source = "git+https://github.com/Acentelles/akita-lz.git?rev=88d30390cecfca015ff8498a98ae1392874eed65#88d30390cecfca015ff8498a98ae1392874eed65"
+source = "git+https://github.com/Acentelles/akita-lz.git?rev=fe6cb1937cad1aebba5c966dad6b68480229a6d3#fe6cb1937cad1aebba5c966dad6b68480229a6d3"
 dependencies = [
  "akita-challenges",
  "akita-error",
@@ -135,7 +135,7 @@ dependencies = [
 [[package]]
 name = "akita-cpu-backend"
 version = "0.1.0"
-source = "git+https://github.com/Acentelles/akita-lz.git?rev=88d30390cecfca015ff8498a98ae1392874eed65#88d30390cecfca015ff8498a98ae1392874eed65"
+source = "git+https://github.com/Acentelles/akita-lz.git?rev=fe6cb1937cad1aebba5c966dad6b68480229a6d3#fe6cb1937cad1aebba5c966dad6b68480229a6d3"
 dependencies = [
  "akita-algebra",
  "akita-challenges",
@@ -156,15 +156,15 @@ dependencies = [
 [[package]]
 name = "akita-error"
 version = "0.1.0"
-source = "git+https://github.com/Acentelles/akita-lz.git?rev=88d30390cecfca015ff8498a98ae1392874eed65#88d30390cecfca015ff8498a98ae1392874eed65"
+source = "git+https://github.com/Acentelles/akita-lz.git?rev=fe6cb1937cad1aebba5c966dad6b68480229a6d3#fe6cb1937cad1aebba5c966dad6b68480229a6d3"
 dependencies = [
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
 name = "akita-params"
 version = "0.1.0"
-source = "git+https://github.com/Acentelles/akita-lz.git?rev=88d30390cecfca015ff8498a98ae1392874eed65#88d30390cecfca015ff8498a98ae1392874eed65"
+source = "git+https://github.com/Acentelles/akita-lz.git?rev=fe6cb1937cad1aebba5c966dad6b68480229a6d3#fe6cb1937cad1aebba5c966dad6b68480229a6d3"
 dependencies = [
  "akita-algebra",
  "akita-challenges",
@@ -181,7 +181,7 @@ dependencies = [
 [[package]]
 name = "akita-pcs"
 version = "0.1.0"
-source = "git+https://github.com/Acentelles/akita-lz.git?rev=88d30390cecfca015ff8498a98ae1392874eed65#88d30390cecfca015ff8498a98ae1392874eed65"
+source = "git+https://github.com/Acentelles/akita-lz.git?rev=fe6cb1937cad1aebba5c966dad6b68480229a6d3#fe6cb1937cad1aebba5c966dad6b68480229a6d3"
 dependencies = [
  "akita-algebra",
  "akita-challenges",
@@ -203,7 +203,7 @@ dependencies = [
 [[package]]
 name = "akita-planner"
 version = "0.1.0"
-source = "git+https://github.com/Acentelles/akita-lz.git?rev=88d30390cecfca015ff8498a98ae1392874eed65#88d30390cecfca015ff8498a98ae1392874eed65"
+source = "git+https://github.com/Acentelles/akita-lz.git?rev=fe6cb1937cad1aebba5c966dad6b68480229a6d3#fe6cb1937cad1aebba5c966dad6b68480229a6d3"
 dependencies = [
  "akita-challenges",
  "akita-error",
@@ -215,7 +215,7 @@ dependencies = [
 [[package]]
 name = "akita-prover"
 version = "0.1.0"
-source = "git+https://github.com/Acentelles/akita-lz.git?rev=88d30390cecfca015ff8498a98ae1392874eed65#88d30390cecfca015ff8498a98ae1392874eed65"
+source = "git+https://github.com/Acentelles/akita-lz.git?rev=fe6cb1937cad1aebba5c966dad6b68480229a6d3#fe6cb1937cad1aebba5c966dad6b68480229a6d3"
 dependencies = [
  "akita-algebra",
  "akita-challenges",
@@ -234,7 +234,7 @@ dependencies = [
 [[package]]
 name = "akita-schedules"
 version = "0.1.0"
-source = "git+https://github.com/Acentelles/akita-lz.git?rev=88d30390cecfca015ff8498a98ae1392874eed65#88d30390cecfca015ff8498a98ae1392874eed65"
+source = "git+https://github.com/Acentelles/akita-lz.git?rev=fe6cb1937cad1aebba5c966dad6b68480229a6d3#fe6cb1937cad1aebba5c966dad6b68480229a6d3"
 dependencies = [
  "akita-challenges",
  "akita-error",
@@ -248,17 +248,17 @@ dependencies = [
 [[package]]
 name = "akita-serialization"
 version = "0.1.0"
-source = "git+https://github.com/Acentelles/akita-lz.git?rev=88d30390cecfca015ff8498a98ae1392874eed65#88d30390cecfca015ff8498a98ae1392874eed65"
+source = "git+https://github.com/Acentelles/akita-lz.git?rev=fe6cb1937cad1aebba5c966dad6b68480229a6d3#fe6cb1937cad1aebba5c966dad6b68480229a6d3"
 dependencies = [
  "jolt-field",
  "jolt-poly",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
 name = "akita-setup"
 version = "0.1.0"
-source = "git+https://github.com/Acentelles/akita-lz.git?rev=88d30390cecfca015ff8498a98ae1392874eed65#88d30390cecfca015ff8498a98ae1392874eed65"
+source = "git+https://github.com/Acentelles/akita-lz.git?rev=fe6cb1937cad1aebba5c966dad6b68480229a6d3#fe6cb1937cad1aebba5c966dad6b68480229a6d3"
 dependencies = [
  "akita-config",
  "akita-cpu-backend",
@@ -273,7 +273,7 @@ dependencies = [
 [[package]]
 name = "akita-sumcheck"
 version = "0.1.0"
-source = "git+https://github.com/Acentelles/akita-lz.git?rev=88d30390cecfca015ff8498a98ae1392874eed65#88d30390cecfca015ff8498a98ae1392874eed65"
+source = "git+https://github.com/Acentelles/akita-lz.git?rev=fe6cb1937cad1aebba5c966dad6b68480229a6d3#fe6cb1937cad1aebba5c966dad6b68480229a6d3"
 dependencies = [
  "akita-algebra",
  "akita-error",
@@ -286,7 +286,7 @@ dependencies = [
 [[package]]
 name = "akita-transcript"
 version = "0.1.0"
-source = "git+https://github.com/Acentelles/akita-lz.git?rev=88d30390cecfca015ff8498a98ae1392874eed65#88d30390cecfca015ff8498a98ae1392874eed65"
+source = "git+https://github.com/Acentelles/akita-lz.git?rev=fe6cb1937cad1aebba5c966dad6b68480229a6d3#fe6cb1937cad1aebba5c966dad6b68480229a6d3"
 dependencies = [
  "akita-error",
  "jolt-field",
@@ -298,7 +298,7 @@ dependencies = [
 [[package]]
 name = "akita-types"
 version = "0.1.0"
-source = "git+https://github.com/Acentelles/akita-lz.git?rev=88d30390cecfca015ff8498a98ae1392874eed65#88d30390cecfca015ff8498a98ae1392874eed65"
+source = "git+https://github.com/Acentelles/akita-lz.git?rev=fe6cb1937cad1aebba5c966dad6b68480229a6d3#fe6cb1937cad1aebba5c966dad6b68480229a6d3"
 dependencies = [
  "akita-algebra",
  "akita-challenges",
@@ -317,7 +317,7 @@ dependencies = [
 [[package]]
 name = "akita-verifier"
 version = "0.1.0"
-source = "git+https://github.com/Acentelles/akita-lz.git?rev=88d30390cecfca015ff8498a98ae1392874eed65#88d30390cecfca015ff8498a98ae1392874eed65"
+source = "git+https://github.com/Acentelles/akita-lz.git?rev=fe6cb1937cad1aebba5c966dad6b68480229a6d3#fe6cb1937cad1aebba5c966dad6b68480229a6d3"
 dependencies = [
  "akita-algebra",
  "akita-challenges",
@@ -420,7 +420,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -447,7 +447,7 @@ dependencies = [
  "alloy-rlp",
  "crc",
  "serde",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -473,7 +473,7 @@ dependencies = [
  "borsh",
  "k256",
  "serde",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -487,7 +487,7 @@ dependencies = [
  "borsh",
  "once_cell",
  "serde",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -500,7 +500,7 @@ dependencies = [
  "alloy-rlp",
  "borsh",
  "serde",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -637,7 +637,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_with",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -733,7 +733,7 @@ dependencies = [
  "nybbles",
  "serde",
  "smallvec",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "tracing",
 ]
 
@@ -1573,7 +1573,7 @@ dependencies = [
  "semver 1.0.27",
  "serde",
  "serde_json",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -1718,7 +1718,7 @@ version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0fa961b519f0b462e3a3b4a34b64d119eeaca1d59af726fe450bbba07a9fc0a1"
 dependencies = [
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -2319,7 +2319,7 @@ dependencies = [
  "rand_core 0.6.4",
  "rayon",
  "serde",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "tracing",
 ]
 
@@ -3424,7 +3424,7 @@ dependencies = [
  "rayon",
  "serde",
  "spongefish",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -3448,7 +3448,7 @@ dependencies = [
  "rand_core 0.6.4",
  "serde",
  "sha3 0.12.0",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -3547,7 +3547,7 @@ dependencies = [
  "postcard",
  "rand 0.8.7",
  "rust-code-analysis",
- "schemars 1.2.2",
+ "schemars 1.2.3",
  "serde",
  "serde_json",
  "sha2 0.11.1",
@@ -3601,7 +3601,7 @@ dependencies = [
  "jolt-poly",
  "jolt-transcript",
  "serde",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -3770,7 +3770,7 @@ dependencies = [
  "rand_chacha 0.3.1",
  "rand_core 0.6.4",
  "rayon",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "tracing",
 ]
 
@@ -3815,7 +3815,7 @@ dependencies = [
  "objc2-foundation",
  "objc2-metal",
  "rayon",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -3831,7 +3831,7 @@ dependencies = [
  "rand_core 0.6.4",
  "serde",
  "spongefish",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "tracing",
 ]
 
@@ -3878,7 +3878,7 @@ dependencies = [
  "rand_core 0.6.4",
  "rayon",
  "serde",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "tracing",
 ]
 
@@ -3890,11 +3890,11 @@ dependencies = [
  "libc",
  "memory-stats",
  "pprof",
- "schemars 1.2.2",
+ "schemars 1.2.3",
  "serde",
  "serde_json",
  "sysinfo",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "tracing",
  "tracing-chrome",
  "tracing-subscriber",
@@ -3913,7 +3913,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.11.1",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -3955,7 +3955,7 @@ dependencies = [
  "serde_json",
  "sha2 0.11.1",
  "sha3 0.12.0",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "tracer",
  "tracing",
 ]
@@ -3966,7 +3966,7 @@ version = "0.1.0"
 dependencies = [
  "jolt-field",
  "serde",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -3977,7 +3977,7 @@ dependencies = [
  "serde",
  "serde_json",
  "strum 0.28.0",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -4046,7 +4046,7 @@ dependencies = [
  "jolt-transcript",
  "serde",
  "sha3 0.12.0",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -4061,7 +4061,7 @@ dependencies = [
  "jolt-transcript",
  "rand_core 0.6.4",
  "serde",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "tracing",
 ]
 
@@ -4147,7 +4147,8 @@ dependencies = [
  "serde_json",
  "sha3 0.12.0",
  "syn 3.0.9",
- "thiserror 2.0.20",
+ "tempfile",
+ "thiserror 2.0.21",
  "tracer",
 ]
 
@@ -4173,7 +4174,7 @@ dependencies = [
  "jolt-utils",
  "jolt-witness-derive",
  "rayon",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "tracing",
 ]
 
@@ -4202,7 +4203,7 @@ dependencies = [
  "rand_core 0.6.4",
  "rayon",
  "serde",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -4275,9 +4276,9 @@ checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "libc"
-version = "0.2.190"
+version = "0.2.191"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ce5d3ddc6d3fa000eb1536d85e147bfe31aacaba692ed6a876f95cb7c855be78"
+checksum = "65cd87c9a6d60536580b316ad985726104730a5151c99845f2490428ef91240a"
 
 [[package]]
 name = "libm"
@@ -4344,9 +4345,9 @@ dependencies = [
 
 [[package]]
 name = "log"
-version = "0.4.34"
+version = "0.4.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9f8bd3e56ce4dfc153cf470fffbfa98c7620958b312ca5c3a4b8d5181fd13c6"
+checksum = "5d15f86d12da44cd8d4ec3c73984537eb7f4cadcb9776a575a0a8a05ca11005c"
 
 [[package]]
 name = "macro-string"
@@ -5162,7 +5163,7 @@ dependencies = [
  "spin 0.10.1",
  "symbolic-demangle",
  "tempfile",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -5732,7 +5733,7 @@ dependencies = [
  "revm-state",
  "secp256k1 0.30.0",
  "serde",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
 ]
 
 [[package]]
@@ -6029,9 +6030,9 @@ dependencies = [
 
 [[package]]
 name = "schemars"
-version = "1.2.2"
+version = "1.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "687274d293b6cdc6e73e0fee520bf2049650090d7164f87672d212a3c530cf4a"
+checksum = "ab508826f74a77ca9d5aba6ff19b522583ee3eaf28a19384ff3d0e5835fadf6e"
 dependencies = [
  "dyn-clone",
  "ref-cast",
@@ -6042,9 +6043,9 @@ dependencies = [
 
 [[package]]
 name = "schemars_derive"
-version = "1.2.2"
+version = "1.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d98c67716b46af2f0b8cf752abc930f6f9aecfbf671ecfb531db8a31dbe4e2ba"
+checksum = "e1c3a92094fa7d61aa124645844facb6b554dfc797136d0f5fd1f890e2bffc69"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -6272,7 +6273,7 @@ dependencies = [
  "indexmap 1.9.3",
  "indexmap 2.14.0",
  "schemars 0.9.0",
- "schemars 1.2.2",
+ "schemars 1.2.3",
  "serde_core",
  "serde_json",
  "serde_with_macros",
@@ -6883,11 +6884,11 @@ dependencies = [
 
 [[package]]
 name = "thiserror"
-version = "2.0.20"
+version = "2.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ec86235f5fcc2a73650310756d2ac5b138a5780bbbdfae3eeccec992c435ba4f"
+checksum = "09e52cb86a36cede5cb101bf8908837b3e4c6e5e59fe7fd85c23fb56200d189e"
 dependencies = [
- "thiserror-impl 2.0.20",
+ "thiserror-impl 2.0.21",
 ]
 
 [[package]]
@@ -6903,9 +6904,9 @@ dependencies = [
 
 [[package]]
 name = "thiserror-impl"
-version = "2.0.20"
+version = "2.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bc04cd3e1236dd4a98afca4569f2deb3f120e5422a4023be2cb683f8486292af"
+checksum = "fe5197923287db20a58125f0bc85c062f7f2c892de97b18c356f9efb14b28524"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -7060,7 +7061,7 @@ dependencies = [
  "serde_json",
  "strum 0.28.0",
  "strum_macros 0.28.0",
- "thiserror 2.0.20",
+ "thiserror 2.0.21",
  "tracing",
  "tracing-subscriber",
 ]
