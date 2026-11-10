@@ -9,7 +9,7 @@ fn next_field(seed: &mut u64, index: usize) -> F {
         2 => -F::from_u64(1),
         _ => {
             let mut bytes = [0; 32];
-            for chunk in bytes.chunks_exact_mut(8) {
+            for chunk in bytes.as_chunks_mut::<8>().0 {
                 *seed ^= *seed << 13;
                 *seed ^= *seed >> 7;
                 *seed ^= *seed << 17;
