@@ -1,5 +1,5 @@
 use super::guest::{load, read_out};
-use super::{emit, r_word, FUNCT3_ADD, FUNCT3_MUL, REG_A, REG_B, REG_SUM};
+use super::{emit, r_word, FUNCT3_ADD, FUNCT3_INV, FUNCT3_MUL, REG_A, REG_B, REG_SUM};
 
 /// Evaluate rows at `alpha` with five register-resident Horner accumulators.
 /// The caller checks that its power vector is exactly `[1, alpha, ...]`.
@@ -46,6 +46,15 @@ use super::{emit, r_word, FUNCT3_ADD, FUNCT3_MUL, REG_A, REG_B, REG_SUM};
     }
     emit::sum_zero();
     load(REG_A, alpha);
+    if N == 2 && width == 64 {
+        // Two memory ingresses multiply the destination by 2^128. Adjust
+        // alpha once so that ingesting a coefficient gives h * alpha + a.
+        // The bound field has odd characteristic, so the radix is invertible.
+        load(REG_B, &[0u64, 1u64]);
+        word!(FUNCT3_MUL, REG_B, REG_B, REG_B);
+        word!(FUNCT3_INV, REG_B, REG_B, 0);
+        word!(FUNCT3_MUL, REG_A, REG_A, REG_B);
+    }
     for (block_rows, block_weights) in rows.chunks(5).zip(weights.chunks(5)) {
         match block_rows {
             [r0, r1, r2, r3, r4] => { if N == 2 && width == 64 { triplet_block([r0, r1, r2, r3, r4]); } else { block!(r0 => 0, r1 => 1, r2 => 2, r3 => 3, r4 => 4); } },
@@ -67,7 +76,7 @@ use super::{emit, r_word, FUNCT3_ADD, FUNCT3_MUL, REG_A, REG_B, REG_SUM};
 use jolt_riscv::field_inline_load_accumulate_from_memory_funct7;
 
 /// The caller has checked one to five rows of 64 two-limb elements. REG_A holds
-/// alpha; registers 9..=13 belong to these row accumulators. The existing
+/// alpha / 2^128; registers 9..=13 belong to these row accumulators. The existing
 /// memory instruction's offsets cover three coefficients from one base.
 #[inline(always)]
 fn triplet_block<const N: usize, const M: usize>(rows: [&[[u64; N]]; M]) {
@@ -93,7 +102,7 @@ fn triplet_block<const N: usize, const M: usize>(rows: [&[[u64; N]]; M]) {
     }
     macro_rules! advance {
         ($base:ident, $k:literal, $coefficient:literal) => {
-            emit::clear(REG_B);
+            word!(FUNCT3_MUL, 9 + $k, 9 + $k, REG_A);
             // SAFETY: base identifies elements j..j+2 in a validated row,
             // N == 2, and coefficient is 0, 1 or 2. The scratch output is
             // early-clobber: its first write must not overwrite the base
@@ -107,14 +116,12 @@ fn triplet_block<const N: usize, const M: usize>(rows: [&[[u64; N]]; M]) {
                     funct3 = const super::FUNCT3_LOAD_ACCUMULATE,
                     high = const field_inline_load_accumulate_from_memory_funct7(2 * $coefficient + 1),
                     low = const field_inline_load_accumulate_from_memory_funct7(2 * $coefficient),
-                    dst = const REG_B,
+                    dst = const 9 + $k,
                     base = in(reg) $base,
                     scratch = out(reg) _,
                     options(nostack)
                 );
             }
-            word!(FUNCT3_MUL, 9 + $k, 9 + $k, REG_A);
-            word!(FUNCT3_ADD, 9 + $k, 9 + $k, REG_B);
         };
     }
     macro_rules! group {
