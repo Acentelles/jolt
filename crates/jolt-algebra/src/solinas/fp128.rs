@@ -1146,6 +1146,12 @@ impl<const P: u128> Field for Fp128<P> {
 
     #[inline(always)]
     fn mul_add(self, rhs: Self, addend: Self) -> Self {
+        #[cfg(all(feature = "field-inline-guest", target_arch = "riscv64"))]
+        if Self::FIELD_INLINE {
+            return Self::from_inline_limbs(crate::field_inline::mul_add(
+                &self.0, &rhs.0, &addend.0,
+            ));
+        }
         Self(Self::mul_add_raw(self.0, rhs.0, addend.0))
     }
 

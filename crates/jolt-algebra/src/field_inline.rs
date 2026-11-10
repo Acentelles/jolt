@@ -419,6 +419,24 @@ mod guest {
         }
         finish()
     }
+    /// Canonical multiply-add without exposing the intermediate product as advice.
+    /// Uses no accumulator register and runs no caller code while operands are live.
+    #[inline(always)]
+    pub fn mul_add<const N: usize>(a: &[u64; N], b: &[u64; N], addend: &[u64; N]) -> [u64; N] {
+        load(REG_A, a);
+        load(REG_B, b);
+        emit::mul_out();
+        load(REG_A, addend);
+        // SAFETY: fixed field addition within the operand/output register lease.
+        unsafe {
+            core::arch::asm!(
+                ".word {word}",
+                word = const r_word(FUNCT3_ADD, REG_OUT, REG_OUT, REG_A),
+                options(nostack)
+            );
+        }
+        finish()
+    }
     /// `Σ a[i]·b[i]` with the running sum resident in the field register file:
     /// operands are loaded once each and only the final sum is read out, so a
     /// length-`k` dot product costs `k` multiplies and one readout instead of
@@ -651,7 +669,7 @@ mod guest {
 }
 
 pub use guest::{
-    accumulators_free, add, bind_modulus, dot, dot_rows, inv, mul, neg, signed_sum, sub,
+    accumulators_free, add, bind_modulus, dot, dot_rows, inv, mul, mul_add, neg, signed_sum, sub,
     sum_of_products, weighted_dot_rows,
 };
 
