@@ -4095,6 +4095,7 @@ dependencies = [
  "jolt-field",
  "jolt-inlines-blake2",
  "jolt-inlines-keccak256",
+ "jolt-transcript",
  "keccak",
  "light-poseidon",
  "num-bigint",
