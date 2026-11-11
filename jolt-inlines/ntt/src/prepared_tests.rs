@@ -94,7 +94,7 @@ fn expanded(prepared: &PreparedForwardNtt64<'_>, state: &[i32; DEGREE]) -> Vec<i
     ];
     let twiddles = &prepared.merged.0;
     for table in [prepared.psi, twiddles] {
-        for pair in table.chunks_exact(2) {
+        for pair in table.as_chunks::<2>().0 {
             words.push(u64::from(pair[0] as u32) | (u64::from(pair[1] as u32) << 32));
         }
     }

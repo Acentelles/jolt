@@ -27,7 +27,7 @@ impl CenteredI16NttInput {
             // the guard establishes alignment and little-endian lane order.
             unsafe { words.cast::<[u64; DEGREE / 2]>().write(self.words) };
         } else {
-            for (pair, &word) in state.chunks_exact_mut(2).zip(&self.words) {
+            for (pair, &word) in state.as_chunks_mut::<2>().0.iter_mut().zip(&self.words) {
                 pair[0] = word as i32;
                 pair[1] = (word >> 32) as i32;
             }
