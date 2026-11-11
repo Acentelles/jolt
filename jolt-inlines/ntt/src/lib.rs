@@ -4,13 +4,13 @@
 mod pointwise;
 pub use pointwise::{pointwise_dot64, DOT_PRODUCTS};
 mod prepared;
-pub use prepared::PreparedForwardNtt64;
+pub use prepared::{CenteredI16NttInput, PreparedForwardNtt64};
 
 pub const DEGREE: usize = 64;
 pub const OPCODE: u32 = 0x0b;
 pub const FUNCT3: u32 = 0;
 pub const FUNCT7: u32 = 8;
-const LAZY_FUNCT7: u32 = 10;
+const MERGED_FUNCT7: u32 = 11;
 
 #[cfg(feature = "host")]
 mod pointwise_builder;
@@ -21,12 +21,12 @@ use jolt_inlines_sdk::host::InlineExtension;
 #[cfg(feature = "host")]
 use pointwise_builder::PointwiseDot64;
 #[cfg(feature = "host")]
-use sequence_builder::{ForwardNtt64, LazyForwardNtt64};
+use sequence_builder::{ForwardNtt64, MergedForwardNtt64};
 #[cfg(feature = "host")]
 jolt_inlines_sdk::register_inlines! {
     trace_file: "ntt_trace.joltinline",
     extension: InlineExtension::Ntt,
-    ops: [ForwardNtt64, PointwiseDot64, LazyForwardNtt64],
+    ops: [ForwardNtt64, PointwiseDot64, MergedForwardNtt64],
 }
 
 /// Twist, then forward DIF NTT, with bit-reversed output in the input's
