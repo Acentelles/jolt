@@ -3,9 +3,10 @@ use jolt_inlines_sdk::host::{
     InlineOp, InlineOperands, InlineRegister, NoAdvice, SourceKind as Kind,
 };
 
-use crate::{DEGREE, FUNCT3, FUNCT7, OPCODE};
+use crate::{DEGREE, FUNCT3, FUNCT7, LAZY_FUNCT7, OPCODE};
 
 pub struct ForwardNtt64;
+pub struct LazyForwardNtt64;
 
 struct NttBuilder {
     asm: InlineExpansionBuilder,
@@ -15,7 +16,21 @@ struct NttBuilder {
 }
 
 impl NttBuilder {
-    fn build(mut self) -> Result<ExpandedInstructionSequence, ExpansionError> {
+    fn new(
+        mut asm: InlineExpansionBuilder,
+        operands: InlineOperands,
+    ) -> Result<Self, ExpansionError> {
+        let values = asm.allocate_inline_array::<DEGREE>()?;
+        let scratch = asm.allocate_inline_array::<10>()?;
+        Ok(Self {
+            asm,
+            operands,
+            values,
+            scratch,
+        })
+    }
+
+    fn build(mut self, lazy: bool) -> Result<ExpandedInstructionSequence, ExpansionError> {
         let [psi, twiddles, p, pinv, temp, _, _, _, weight, one] = self.scratch.map(|r| *r);
         self.asm.emit_ld(Kind::LD, psi, self.operands.rs2, 0);
         self.asm.emit_ld(Kind::LD, twiddles, self.operands.rs2, 8);
@@ -66,9 +81,16 @@ impl NttBuilder {
                 for start in (0..DEGREE).step_by(2 * len) {
                     let u = *self.values[start + j];
                     let v = *self.values[start + j + len];
-                    self.asm.emit_r(Kind::SUBW, psi, u, v);
-                    self.asm.emit_r(Kind::ADDW, u, u, v);
-                    self.mont_mul(u, u, one);
+                    self.asm
+                        .emit_r(if lazy { Kind::SUB } else { Kind::SUBW }, psi, u, v);
+                    self.asm
+                        .emit_r(if lazy { Kind::ADD } else { Kind::ADDW }, u, u, v);
+                    // Checked centered tables let odd stages keep sums in
+                    // (-2p, 2p); even stages restore both outputs to (-p, p).
+                    // Their raw butterflies can exceed i32, hence ADD/SUB.
+                    if !lazy || matches!(len, 16 | 4 | 1) {
+                        self.mont_mul(u, u, one);
+                    }
                     self.mont_mul(v, psi, twiddle);
                 }
             }
@@ -113,17 +135,24 @@ impl InlineOp for ForwardNtt64 {
     const NAME: &'static str = "NTT64_I32_FORWARD";
 
     fn build_sequence(
-        mut asm: InlineExpansionBuilder,
+        asm: InlineExpansionBuilder,
         operands: InlineOperands,
     ) -> Result<ExpandedInstructionSequence, ExpansionError> {
-        let values = asm.allocate_inline_array::<DEGREE>()?;
-        let scratch = asm.allocate_inline_array::<10>()?;
-        NttBuilder {
-            asm,
-            operands,
-            values,
-            scratch,
-        }
-        .build()
+        NttBuilder::new(asm, operands)?.build(false)
+    }
+}
+
+impl InlineOp for LazyForwardNtt64 {
+    type Advice = NoAdvice;
+    const OPCODE: u32 = OPCODE;
+    const FUNCT3: u32 = FUNCT3;
+    const FUNCT7: u32 = LAZY_FUNCT7;
+    const NAME: &'static str = "NTT64_I32_FORWARD_LAZY";
+
+    fn build_sequence(
+        asm: InlineExpansionBuilder,
+        operands: InlineOperands,
+    ) -> Result<ExpandedInstructionSequence, ExpansionError> {
+        NttBuilder::new(asm, operands)?.build(true)
     }
 }

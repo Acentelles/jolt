@@ -1,0 +1,174 @@
+#![expect(clippy::unwrap_used, reason = "fixed valid NTT test parameters")]
+
+use super::PreparedForwardNtt64;
+use crate::{forward_ntt64, sequence_builder::ForwardNtt64, DEGREE, LAZY_FUNCT7};
+use jolt_inlines_sdk::InlineSpec;
+use tracer::emulator::mmu::DRAM_BASE;
+use tracer::instruction::RISCVTrace;
+use tracer::utils::inline_test_harness::{InlineMemoryLayout, InlineTestHarness};
+use tracer::utils::virtual_registers::VirtualRegisterAllocator;
+
+const PRIMES: [i32; 6] = [
+    1_073_707_009,
+    1_073_698_817,
+    1_073_692_673,
+    1_073_682_433,
+    1_073_668_097,
+    1_073_655_809,
+];
+
+fn pow(mut a: i64, mut n: usize, p: i64) -> i64 {
+    let mut value = 1;
+    while n != 0 {
+        if n & 1 != 0 {
+            value = value * a % p;
+        }
+        a = a * a % p;
+        n >>= 1;
+    }
+    value
+}
+
+struct Parameters {
+    p: i32,
+    pinv: i32,
+    root: i64,
+    psi: [i32; DEGREE],
+    twiddles: [i32; DEGREE],
+}
+
+impl Parameters {
+    fn new(p: i32) -> Self {
+        let modulus = i64::from(p);
+        let root = (2..modulus)
+            .find(|&a| pow(a, (p as usize - 1) / 2, modulus) == modulus - 1)
+            .map(|a| pow(a, (p as usize - 1) / (2 * DEGREE), modulus))
+            .unwrap();
+        let radix = (1i64 << 32) % modulus;
+        let psi = core::array::from_fn(|i| (pow(root, i, modulus) * radix % modulus) as i32);
+        let mut twiddles = [0; DEGREE];
+        for length in [1, 2, 4, 8, 16, 32] {
+            for j in 0..length {
+                twiddles[length - 1 + j] =
+                    (pow(root, DEGREE / length * j, modulus) * radix % modulus) as i32;
+            }
+        }
+        let mut pinv = 1i32;
+        for _ in 0..5 {
+            pinv = pinv.wrapping_mul(2i32.wrapping_sub(p.wrapping_mul(pinv)));
+        }
+        Self {
+            p,
+            pinv,
+            root,
+            psi,
+            twiddles,
+        }
+    }
+
+    fn evaluate(&self, state: &[i32; DEGREE]) -> [i32; DEGREE] {
+        let p = i64::from(self.p);
+        core::array::from_fn(|i: usize| {
+            let frequency = i.reverse_bits() >> (usize::BITS - 6);
+            let point = pow(self.root, 2 * frequency + 1, p);
+            state.iter().enumerate().fold(0i64, |sum, (j, &value)| {
+                (sum + i64::from(value) * pow(point, j, p)).rem_euclid(p)
+            }) as i32
+        })
+    }
+}
+
+fn expanded(prepared: &PreparedForwardNtt64<'_>, state: &[i32; DEGREE]) -> Vec<i32> {
+    let mut harness = InlineTestHarness::new(InlineMemoryLayout::single_input(
+        24 + 2 * DEGREE * 4,
+        DEGREE * 4,
+    ));
+    harness.setup_registers();
+    let mut words = vec![
+        DRAM_BASE + 24,
+        DRAM_BASE + 24 + DEGREE as u64 * 4,
+        u64::from(prepared.p as u32) | (u64::from(prepared.pinv as u32) << 32),
+    ];
+    for table in [prepared.psi, &prepared.twiddles] {
+        for pair in table.chunks_exact(2) {
+            words.push(u64::from(pair[0] as u32) | (u64::from(pair[1] as u32) << 32));
+        }
+    }
+    harness.load_input64(&words);
+    harness.load_state32(&state.map(|x| x as u32));
+    let mut instruction = ForwardNtt64::instruction();
+    instruction.funct7 = LAZY_FUNCT7;
+    instruction.trace(&mut harness.cpu, None);
+    harness
+        .read_output32(DEGREE)
+        .into_iter()
+        .map(|x| x as i32)
+        .collect()
+}
+
+#[test]
+fn prepared_ntt_preserves_exact_words_and_direct_evaluation_for_six_primes() {
+    for p in PRIMES {
+        let params = Parameters::new(p);
+        let prepared =
+            PreparedForwardNtt64::new(&params.psi, &params.twiddles, p, params.pinv).unwrap();
+        let mut states = [0, 1, -1, i32::MIN, i32::MAX, p - 1, 1 - p]
+            .map(|x| [x; DEGREE])
+            .to_vec();
+        states.push(core::array::from_fn(|i| {
+            if i & 1 == 0 {
+                i32::MIN
+            } else {
+                i32::MAX
+            }
+        }));
+        states.push(core::array::from_fn(|i| {
+            (i as i32).wrapping_mul(1_234_567_891)
+        }));
+        for state in states {
+            let mut base = state;
+            forward_ntt64(&mut base, &params.psi, &params.twiddles, p, params.pinv);
+            let mut portable_prepared = state;
+            prepared.transform(&mut portable_prepared);
+            assert_eq!(base, params.evaluate(&state), "p={p}");
+            assert_eq!(portable_prepared, base, "p={p}");
+            assert_eq!(expanded(&prepared, &state), base, "p={p}");
+        }
+    }
+}
+
+#[test]
+fn prepared_ntt_rejects_each_invalid_admission_condition() {
+    let params = Parameters::new(PRIMES[0]);
+    for p in [0, -1, 1 << 30, i32::MAX, 2] {
+        assert!(PreparedForwardNtt64::new(&params.psi, &params.twiddles, p, params.pinv).is_none());
+    }
+    assert!(
+        PreparedForwardNtt64::new(&params.psi, &params.twiddles, params.p, params.pinv ^ 1)
+            .is_none()
+    );
+    for value in [-params.p, params.p, i32::MIN, i32::MAX] {
+        let mut psi = params.psi;
+        psi[63] = value;
+        assert!(PreparedForwardNtt64::new(&psi, &params.twiddles, params.p, params.pinv).is_none());
+        let mut twiddles = params.twiddles;
+        twiddles[63] = value;
+        assert!(PreparedForwardNtt64::new(&params.psi, &twiddles, params.p, params.pinv).is_none());
+    }
+    let mut twiddles = params.twiddles;
+    twiddles[0] = 0;
+    assert!(PreparedForwardNtt64::new(&params.psi, &twiddles, params.p, params.pinv).is_none());
+}
+
+#[test]
+fn forward_ntt_body_and_materialized_row_counts() {
+    let instruction = ForwardNtt64::instruction();
+    let rows = instruction.inline_sequence(&VirtualRegisterAllocator::new());
+    assert_eq!(rows.len(), 3315);
+    assert_eq!(rows.len() - 74, 3241);
+    let mut lazy = instruction;
+    lazy.funct7 = LAZY_FUNCT7;
+    let rows = lazy.inline_sequence(&VirtualRegisterAllocator::new());
+    assert_eq!(rows.len(), 2835);
+    assert_eq!(rows.len() - 74, 2761);
+}

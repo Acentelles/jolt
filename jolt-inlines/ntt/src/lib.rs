@@ -3,11 +3,14 @@
 
 mod pointwise;
 pub use pointwise::{pointwise_dot64, DOT_PRODUCTS};
+mod prepared;
+pub use prepared::PreparedForwardNtt64;
 
 pub const DEGREE: usize = 64;
 pub const OPCODE: u32 = 0x0b;
 pub const FUNCT3: u32 = 0;
 pub const FUNCT7: u32 = 8;
+const LAZY_FUNCT7: u32 = 10;
 
 #[cfg(feature = "host")]
 mod pointwise_builder;
@@ -18,12 +21,12 @@ use jolt_inlines_sdk::host::InlineExtension;
 #[cfg(feature = "host")]
 use pointwise_builder::PointwiseDot64;
 #[cfg(feature = "host")]
-use sequence_builder::ForwardNtt64;
+use sequence_builder::{ForwardNtt64, LazyForwardNtt64};
 #[cfg(feature = "host")]
 jolt_inlines_sdk::register_inlines! {
     trace_file: "ntt_trace.joltinline",
     extension: InlineExtension::Ntt,
-    ops: [ForwardNtt64, PointwiseDot64],
+    ops: [ForwardNtt64, PointwiseDot64, LazyForwardNtt64],
 }
 
 /// Twist, then forward DIF NTT, with bit-reversed output in the input's
@@ -47,11 +50,22 @@ pub fn forward_ntt64(
     p: i32,
     pinv: i32,
 ) {
+    forward::<FUNCT7>(state, psi, twiddles, p, pinv);
+}
+
+#[inline]
+fn forward<const SELECTOR: u32>(
+    state: &mut [i32; DEGREE],
+    psi: &[i32; DEGREE],
+    twiddles: &[i32; DEGREE],
+    p: i32,
+    pinv: i32,
+) {
     #[cfg(target_arch = "riscv64")]
     {
         if (state.as_ptr() as usize | psi.as_ptr() as usize | twiddles.as_ptr() as usize) & 7 == 0 {
             // SAFETY: the guard establishes alignment for all paired accesses.
-            unsafe { forward_aligned(state, psi, twiddles, p, pinv) };
+            unsafe { forward_aligned::<SELECTOR>(state, psi, twiddles, p, pinv) };
         } else {
             #[repr(align(8))]
             struct Aligned([i32; DEGREE]);
@@ -60,7 +74,7 @@ pub fn forward_ntt64(
             let aligned_twiddles = Aligned(*twiddles);
             // SAFETY: the stack buffers have explicit doubleword alignment.
             unsafe {
-                forward_aligned(
+                forward_aligned::<SELECTOR>(
                     &mut aligned_state.0,
                     &aligned_psi.0,
                     &aligned_twiddles.0,
@@ -77,7 +91,7 @@ pub fn forward_ntt64(
 
 #[cfg(target_arch = "riscv64")]
 #[inline]
-unsafe fn forward_aligned(
+unsafe fn forward_aligned<const SELECTOR: u32>(
     state: &mut [i32; DEGREE],
     psi: &[i32; DEGREE],
     twiddles: &[i32; DEGREE],
@@ -96,7 +110,7 @@ unsafe fn forward_aligned(
             ".insn r {opcode}, {funct3}, {funct7}, x0, {state}, {params}",
             opcode = const OPCODE,
             funct3 = const FUNCT3,
-            funct7 = const FUNCT7,
+            funct7 = const SELECTOR,
             state = in(reg) state.as_mut_ptr(),
             params = in(reg) params.as_ptr(),
             options(nostack),
