@@ -14,7 +14,8 @@ pub const DOT_FUNCT7: u32 = 9;
 /// `acc[i] += sum(lhs[j][i] * rhs[j][i]) / 2^32 (mod p)`, returning canonical
 /// residues. `pinv` is `p^-1 mod 2^32`. A shorter dot can pad with zero arrays.
 /// Other inputs follow explicit wrapping integer arithmetic. Unaligned arrays
-/// use the portable path; the inline requires doubleword-aligned paired loads.
+/// use the portable path, as do negative moduli; the inline requires a
+/// nonnegative modulus and doubleword-aligned paired loads.
 /// Unlike `forward_ntt64`, it does not copy to aligned buffers: copying thirteen
 /// arrays would cost more than the portable loop.
 #[inline]
@@ -26,7 +27,8 @@ pub fn pointwise_dot64(
     pinv: i32,
 ) {
     #[cfg(target_arch = "riscv64")]
-    if acc.as_ptr() as usize & 7 == 0
+    if p >= 0
+        && acc.as_ptr() as usize & 7 == 0
         && lhs
             .iter()
             .chain(&rhs)

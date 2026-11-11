@@ -18,6 +18,24 @@ struct DotBuilder {
 }
 
 impl DotBuilder {
+    fn new(
+        mut asm: InlineExpansionBuilder,
+        operands: InlineOperands,
+    ) -> Result<Self, ExpansionError> {
+        let sums = asm.allocate_inline_array::<{ DEGREE / 2 }>()?;
+        let pointers = asm.allocate_inline_array::<{ 2 * DOT_PRODUCTS }>()?;
+        let primes = asm.allocate_inline_array::<2>()?;
+        let scratch = asm.allocate_inline_array::<6>()?;
+        Ok(Self {
+            asm,
+            operands,
+            sums,
+            pointers,
+            primes,
+            scratch,
+        })
+    }
+
     fn build(mut self) -> Result<ExpandedInstructionSequence, ExpansionError> {
         let [p, pinv] = self.primes.map(|r| *r);
         let [a_lo, a_hi, b_lo, b_hi, temp, mask] = self.scratch.map(|r| *r);
@@ -99,31 +117,20 @@ impl InlineOp for PointwiseDot64 {
     const NAME: &'static str = "NTT64_I32_POINTWISE_DOT6";
 
     fn build_sequence(
-        mut asm: InlineExpansionBuilder,
+        asm: InlineExpansionBuilder,
         operands: InlineOperands,
     ) -> Result<ExpandedInstructionSequence, ExpansionError> {
-        let sums = asm.allocate_inline_array::<{ DEGREE / 2 }>()?;
-        let pointers = asm.allocate_inline_array::<{ 2 * DOT_PRODUCTS }>()?;
-        let primes = asm.allocate_inline_array::<2>()?;
-        let scratch = asm.allocate_inline_array::<6>()?;
-        DotBuilder {
-            asm,
-            operands,
-            sums,
-            pointers,
-            primes,
-            scratch,
-        }
-        .build()
+        DotBuilder::new(asm, operands)?.build()
     }
 }
 
 fn reduce(asm: &mut InlineExpansionBuilder, value: u8, p: u8, diff: u8, mask: u8) {
-    asm.emit_r(Kind::SUB, diff, value, p);
-    asm.emit_i(Kind::SRAI, mask, diff, 63);
-    asm.emit_r(Kind::AND, mask, mask, p);
-    asm.emit_r(Kind::ADD, diff, diff, mask);
-    asm.emit_i(Kind::SRAI, mask, diff, 63);
-    asm.emit_r(Kind::AND, mask, mask, p);
-    asm.emit_r(Kind::ADDW, value, diff, mask);
+    // For every signed word x and p >= 0, two-sided correction is
+    // x + p * ([x < p] - (x >> 63) - 1). The wrapper enforces p >= 0.
+    asm.emit_r(Kind::SLT, diff, value, p);
+    asm.emit_i(Kind::SRAI, mask, value, 63);
+    asm.emit_r(Kind::SUB, diff, diff, mask);
+    asm.emit_i(Kind::ADDI, diff, diff, u64::MAX);
+    asm.emit_r(Kind::MUL, diff, diff, p);
+    asm.emit_r(Kind::ADDW, value, value, diff);
 }
