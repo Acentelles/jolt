@@ -11,11 +11,13 @@
 
 #[cfg(feature = "allocative")]
 use allocative::Allocative;
+use jolt_utils::alloc::{ZeroAllocError, ZeroBytesValid};
 use num_traits::{One, Zero};
 use rand_core::RngCore;
 use serde::{de::DeserializeOwned, Serialize};
 #[cfg(feature = "spongefish")]
 use spongefish::Encoding;
+use std::alloc::Layout;
 use std::fmt::{Debug, Display};
 use std::hash::Hash;
 use std::iter::{Product, Sum};
@@ -189,6 +191,23 @@ pub(crate) fn sum_of_products_fold<F: Ring, const K: usize>(terms: &[[F; K]]) ->
 }
 
 pub trait Field: Ring {
+    /// Allocates initialized additive identities. Fields with a valid zero-byte
+    /// representation may override this with a marker-backed allocation.
+    fn zeroed_vec(len: usize) -> Vec<Self> {
+        vec![Self::zero(); len]
+    }
+
+    /// Fallible allocation with the same layout validation as the zero-byte path.
+    fn try_zeroed_vec(len: usize) -> Result<Vec<Self>, ZeroAllocError> {
+        let layout = Layout::array::<Self>(len).map_err(|_| ZeroAllocError::CapacityOverflow)?;
+        let mut values = Vec::new();
+        values
+            .try_reserve_exact(len)
+            .map_err(|_| ZeroAllocError::AllocFailed { layout })?;
+        values.resize(len, Self::zero());
+        Ok(values)
+    }
+
     /// Multiplicative inverse, or `None` for the zero element.
     fn inverse(&self) -> Option<Self>;
 
@@ -200,12 +219,6 @@ pub trait Field: Ring {
             .zip(b)
             .fold(<Self as Zero>::zero(), |acc, (x, y)| acc + *x * *y)
     }
-    crate::terminal_contraction::field_methods!();
-    #[cfg(feature = "signed-byte-sum")]
-    crate::signed_byte_sum::field_methods!();
-    crate::algebra::fill_ingress_field_method!();
-    #[cfg(feature = "setup-weight-tiles")]
-    crate::setup_weight_tiles::field_methods!();
     /// `Σ ±terms[i]`: each term is subtracted when its flag is set and added
     /// otherwise. Fields with a batched guest path (a register-resident sum
     /// read out once) override this.
@@ -270,7 +283,7 @@ pub trait Field: Ring {
 /// The exponent `k` is [`CanonicalEncoding::MODULUS_BITS`]; implementing
 /// this contract lights up the generic machinery bounded on it (extension
 /// towers, packed backends).
-pub trait PseudoMersenne: Field + CanonicalEncoding {
+pub trait PseudoMersenne: Field + CanonicalEncoding + ZeroBytesValid {
     /// Offset `c` in `2^k − c`.
     const OFFSET: u128;
 
@@ -369,17 +382,6 @@ pub trait CanonicalBytes {
 
     /// Writes the canonical little-endian encoding into `out`.
     fn to_bytes_le(&self, out: &mut [u8]);
-
-    /// Writes the canonical encoding in big-endian byte order into `out`.
-    ///
-    /// `out` must have length [`NUM_BYTES`](Self::NUM_BYTES). This is the
-    /// byte reversal of [`to_bytes_le`](Self::to_bytes_le), including for
-    /// non-field encodings.
-    #[inline]
-    fn to_bytes_be(&self, out: &mut [u8]) {
-        self.to_bytes_le(out);
-        out.reverse();
-    }
 
     /// Returns the canonical little-endian encoding as a vector.
     #[inline]
@@ -672,33 +674,3 @@ impl<
     > JoltField for T
 {
 }
-
-pub(crate) fn signed_i16_dot_fold<F: Field>(
-    weights: &[F],
-    coefficients: impl IntoIterator<Item = i16>,
-) -> F {
-    weights
-        .iter()
-        .zip(coefficients)
-        .fold(F::zero(), |sum, (&weight, value)| {
-            sum + weight * F::from_i64(i64::from(value))
-        })
-}
-
-// `Field::scale_slice_into` computes the
-// slice product `dst[i] = src[i] * scale` over the shorter of the two slices.
-// The default multiplies in software; a field with a field-inline guest path
-// overrides it to load the scale once per call. The trait gains the method
-// from this macro, invoked inside the trait.
-macro_rules! fill_ingress_field_method {
-    () => {
-        /// `dst[i] = src[i] * scale` over the shorter of the two slices.
-        #[inline]
-        fn scale_slice_into(scale: Self, src: &[Self], dst: &mut [Self]) {
-            dst.iter_mut()
-                .zip(src)
-                .for_each(|(value, &low_value)| *value = low_value * scale);
-        }
-    };
-}
-pub(crate) use fill_ingress_field_method;

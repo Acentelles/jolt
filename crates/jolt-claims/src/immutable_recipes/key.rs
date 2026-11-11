@@ -1,9 +1,5 @@
+use super::KeySink;
 use std::num::NonZeroUsize;
-
-/// A streaming visitor: false stops before reading another shape member.
-pub trait KeySink {
-    fn word(&mut self, value: u64) -> bool;
-}
 
 pub trait KeyVisit {
     fn visit(&self, sink: &mut dyn KeySink) -> bool;

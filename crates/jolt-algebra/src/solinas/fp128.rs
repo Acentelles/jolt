@@ -17,6 +17,8 @@
 //! the portable throughput on Apple M4. Without `asm`, all Fp128 operations
 //! use portable Rust.
 
+use jolt_utils::alloc::ZeroBytesValid;
+
 use super::word::mul64_wide;
 use super::FIELD_INLINE_FP128_MODULUS;
 use crate::PseudoMersenne;
@@ -38,7 +40,7 @@ mod add_sub;
     all(feature = "asm", target_arch = "x86_64"),
     all(test, feature = "asm", target_arch = "aarch64")
 ))]
-const A7F7_OFFSET: u64 = 0xffff_a7f7;
+const OFFSET_6A23801F: u64 = 0x6a23_801f;
 #[cfg(all(feature = "fuzzing", target_arch = "x86_64"))]
 const X86_64_BASELINE_BACKEND: u8 = 1;
 #[cfg(all(
@@ -342,10 +344,10 @@ impl<const P: u128> Fp128<P> {
     #[cfg(all(feature = "asm", target_arch = "x86_64"))]
     #[inline(always)]
     fn mul_raw_x86_64_dispatch(a: [u64; 2], b: [u64; 2]) -> [u64; 2] {
-        if Self::C_LO == A7F7_OFFSET {
+        if Self::C_LO == OFFSET_6A23801F {
             #[cfg(all(target_feature = "bmi2", target_feature = "adx"))]
             {
-                Self::mul_raw_x86_64_a7f7_bmi2_adx(a, b)
+                Self::mul_raw_x86_64_6a23801f_bmi2_adx(a, b)
             }
             #[cfg(not(all(target_feature = "bmi2", target_feature = "adx")))]
             {
@@ -356,7 +358,7 @@ impl<const P: u128> Fp128<P> {
         }
     }
 
-    /// A7F7 multiplication for x86-64 builds with BMI2 and ADX enabled.
+    /// 6A23801F multiplication for x86-64 builds with BMI2 and ADX enabled.
     ///
     /// `rdi:rsi` starts with `a`, and `rdx:rcx` starts with `b`. The body
     /// finishes directly in the System V result registers `rax:rdx`. It uses
@@ -368,7 +370,7 @@ impl<const P: u128> Fp128<P> {
         target_feature = "adx"
     ))]
     #[inline(always)]
-    fn mul_raw_x86_64_a7f7_bmi2_adx(a: [u64; 2], b: [u64; 2]) -> [u64; 2] {
+    fn mul_raw_x86_64_6a23801f_bmi2_adx(a: [u64; 2], b: [u64; 2]) -> [u64; 2] {
         #[cfg(feature = "fuzzing")]
         LAST_X86_64_MUL_BACKEND.store(X86_64_BMI2_ADX_BACKEND, Ordering::Relaxed);
         let [a_lo, a_hi] = a;
@@ -991,7 +993,7 @@ impl<const P: u128> Fp128<P> {
         #[cfg(target_arch = "x86_64")]
         {
             #[cfg(all(target_feature = "bmi2", target_feature = "adx"))]
-            let expected_backend = if Self::C_LO == A7F7_OFFSET {
+            let expected_backend = if Self::C_LO == OFFSET_6A23801F {
                 X86_64_BMI2_ADX_BACKEND
             } else {
                 X86_64_BASELINE_BACKEND
@@ -1072,27 +1074,15 @@ impl<const P: u128> Ring for Fp128<P> {
     }
 }
 
+// SAFETY: Fp128 stores zero as two zero u64 limbs.
+unsafe impl<const P: u128> ZeroBytesValid for Fp128<P> {}
+
 impl<const P: u128> Field for Fp128<P> {
+    zeroed_field_vec!();
     #[inline]
     fn dot_product(a: &[Self], b: &[Self]) -> Self {
         <Self as MulBaseUnreduced<Self>>::dot_base(a, b)
     }
-    crate::terminal_contraction::fp128_methods!();
-    #[cfg(all(
-        feature = "signed-byte-sum",
-        feature = "field-inline-guest",
-        target_arch = "riscv64"
-    ))]
-    crate::signed_byte_sum::fp128_methods!();
-    fn scale_slice_into(scale: Self, src: &[Self], dst: &mut [Self]) {
-        Self::fill_ingress_scale(scale, src, dst);
-    }
-    #[cfg(all(
-        feature = "setup-weight-tiles",
-        feature = "field-inline-guest",
-        target_arch = "riscv64"
-    ))]
-    crate::setup_weight_tiles::fp128_methods!();
     #[cfg(all(feature = "field-inline-guest", target_arch = "riscv64"))]
     #[inline]
     fn signed_sum<'a>(terms: impl IntoIterator<Item = (&'a Self, bool)>) -> Self
@@ -1362,7 +1352,7 @@ unsafe impl<const P: u128> CheckedBitPattern for Fp128<P> {
 
 #[cfg(all(test, feature = "bytemuck"))]
 mod bytemuck_tests {
-    use super::super::{Prime128Offset275, Prime128Offset6A23801F, Prime128OffsetA7F7};
+    use super::super::{Prime128Offset275, Prime128Offset6A23801F};
     use super::split;
     use bytemuck::checked::{self, CheckedCastError};
     use bytemuck::CheckedBitPattern;
@@ -1385,7 +1375,6 @@ mod bytemuck_tests {
 
     #[test]
     fn only_canonical_limbs_are_valid_bit_patterns() {
-        check::<Prime128OffsetA7F7>(0u128.wrapping_sub(0xFFFF_A7F7));
         check::<Prime128Offset6A23801F>(0u128.wrapping_sub(0x6A23_801F));
         check::<Prime128Offset275>(0u128.wrapping_sub(275));
     }
@@ -1452,7 +1441,7 @@ mod tests {
     fn fp128_asm_matches_portable() {
         check::<{ u128::MAX - 172 }>(); // C = 173, outside the published aliases
         check::<{ u128::MAX - 274 }>();
-        check::<{ u128::MAX - (A7F7_OFFSET as u128 - 1) }>();
+        check::<{ u128::MAX - (OFFSET_6A23801F as u128 - 1) }>();
     }
 }
 
@@ -1482,34 +1471,6 @@ impl<const P: u128> Fp128<P> {
             )));
         }
         Some(a.inv_or_zero())
-    }
-}
-
-// On a guest whose field-inline
-// unit computes in this field, the slice product loads `scale` into a field
-// register once and each element costs its own ingress, one multiply and one
-// canonical readout (range checked as every field-inline result is). The
-// kernel uses only the operand, output and readout scratch registers, never
-// the accumulators that `signed_sum` lends out, and runs no caller code while
-// the scale is resident. Elsewhere, the software product.
-impl<const P: u128> Fp128<P> {
-    #[inline]
-    fn fill_ingress_scale(scale: Self, src: &[Self], dst: &mut [Self]) {
-        let len = src.len().min(dst.len());
-        #[cfg(all(feature = "field-inline-guest", target_arch = "riscv64"))]
-        if Self::FIELD_INLINE && len >= 2 {
-            // SAFETY: `Fp128` is `repr(transparent)` over `[u64; 2]`.
-            let src: &[[u64; 2]] = unsafe { core::slice::from_raw_parts(src.as_ptr().cast(), len) };
-            let dst = &mut dst[..len];
-            crate::field_inline::scale::scale_into(&scale.0, src, |index, limbs| {
-                dst[index] = Self::from_inline_limbs(limbs);
-            });
-            return;
-        }
-        dst[..len]
-            .iter_mut()
-            .zip(&src[..len])
-            .for_each(|(value, &low_value)| *value = low_value * scale);
     }
 }
 

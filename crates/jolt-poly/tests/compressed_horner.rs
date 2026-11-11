@@ -1,4 +1,4 @@
-use jolt_field::{Field, Fr, Prime128OffsetA7F7 as Fp128};
+use jolt_field::{Field, Fr, Prime128Offset6A23801F as Fp128};
 use jolt_poly::CompressedPoly;
 
 fn compressed_spec<F: Field>() {

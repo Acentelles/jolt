@@ -20,18 +20,20 @@ allocative = ["dep:allocative"]
 field-inline = ["jolt-lookup-tables/field-inline"]
 test-utils = []
 immutable-recipes = [
+  "jolt-claim-expr/immutable-recipes",
   "akita",
   "field-inline",
   "jolt-field/immutable-recipes",
   "jolt-field/solinas",
 ]
-immutable-recipes-record = ["immutable-recipes"]
+immutable-recipes-record = ["immutable-recipes", "jolt-claim-expr/immutable-recipes-record"]
 # Bytecode fold (default off): direct flag-class index in the
 # stage 6b bytecode read-RAF fold. Same values.
 
 [dependencies]
 allocative = { workspace = true, optional = true }
 derive_more.workspace = true
+jolt-claim-expr.workspace = true
 jolt-claims-derive.workspace = true
 jolt-field.workspace = true
 jolt-lookup-tables.workspace = true

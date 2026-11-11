@@ -98,7 +98,6 @@ mod emit {
             }
         };
     }
-    include!("field_inline/terminal_emit.rs");
     /// Accumulate one word into a destination previously cleared by `clear`.
     #[inline(always)]
     pub fn load_accumulate(dst: u32, offset: usize, base: *const u64) {
@@ -315,7 +314,6 @@ mod emit {
 
 mod guest {
     use super::*;
-    include!("field_inline/terminal_guest.rs");
     static READY: AtomicBool = AtomicBool::new(false);
 
     /// Prove that the unit computes modulo `modulus`. Accumulating the
@@ -664,8 +662,6 @@ mod guest {
         }
         finish()
     }
-    #[cfg(feature = "signed-byte-sum")]
-    include!("field_inline/signed_byte_sum.rs");
 }
 
 pub use guest::{
@@ -680,36 +676,4 @@ pub use guest::{
 // reloads its row base pointer from memory; locals stay in registers across
 // the asm.
 
-pub use guest::signed_i16_dot;
 pub(crate) mod horner;
-
-// `out(i, src[i] * scale)` with
-// `scale` loaded into `REG_B` once. Each element is loaded into `REG_A`,
-// multiplied into `REG_OUT` and read out canonically (the caller range checks
-// the limbs). Only the operand, output and readout scratch registers are
-// written; no caller code but `out` (integer work on the readout) runs while
-// the scale is resident. Canonical limbs.
-pub(crate) mod scale {
-    use super::guest::{load, read_out};
-    use super::{emit, REG_A, REG_B, REG_OUT};
-
-    #[inline(always)]
-    pub(crate) fn scale_into<const N: usize>(
-        scale: &[u64; N],
-        src: &[[u64; N]],
-        mut out: impl FnMut(usize, [u64; N]),
-    ) {
-        load(REG_B, scale);
-        for (index, value) in src.iter().enumerate() {
-            load(REG_A, value);
-            emit::mul_out();
-            out(index, read_out(REG_OUT));
-        }
-    }
-}
-
-#[cfg(feature = "signed-byte-sum")]
-pub use guest::sum_signed_bytes;
-
-#[cfg(feature = "setup-weight-tiles")]
-pub(crate) mod setup_weight_tiles;

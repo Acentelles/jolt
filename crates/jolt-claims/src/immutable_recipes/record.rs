@@ -1,13 +1,13 @@
 //! Native-only observation of the canonical verifier's existing expression values.
 
-use super::{KeySink, Phase, Record, IMMUTABLE_RECIPE_MODULUS};
+use super::{KeySink, Phase, Record};
 use crate::protocols::composed::ComposedOpeningId;
 use crate::protocols::field_inline::{
     FieldInlineChallengeId, FieldInlineDerivedId, FieldInlineOpeningId,
 };
 use crate::protocols::jolt::{JoltChallengeId, JoltDerivedId, JoltOpeningId};
 use crate::{Expr, Source};
-use jolt_field::Ring;
+use jolt_field::{Ring, IMMUTABLE_RECIPE_MODULUS};
 use serde::Serializer;
 use std::collections::BTreeSet;
 use std::fmt::{Error as FmtError, Result as FmtResult, Write};
@@ -739,7 +739,7 @@ impl Capture {
             // argument holding constructor calls is a temporary that a static cannot borrow.
             write!(
                 writer,
-                "pub static {family}:{table}=match {table}::new(const {{&["
+                "pub static {family}:{table}=match {table}::new({IMMUTABLE_RECIPE_MODULUS},const {{&["
             )?;
             for record in &self.records {
                 match &record.record {
@@ -868,7 +868,7 @@ mod tests {
     use super::*;
     use crate::protocols::jolt::JoltRelationId;
     use crate::Term;
-    use jolt_field::Prime128OffsetA7F7 as F;
+    use jolt_field::Prime128Offset6A23801F as F;
 
     fn observe(coefficient: u64) {
         let expression = Expr::<F, JoltOpeningId, JoltDerivedId, JoltChallengeId> {

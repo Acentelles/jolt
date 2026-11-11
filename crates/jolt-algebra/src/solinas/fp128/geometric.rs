@@ -22,7 +22,7 @@ pub(super) fn ratio<const P: u128>(powers: &[Fp128<P>]) -> Option<Fp128<P>> {
 #[cfg(test)]
 mod tests {
     use super::ratio;
-    use crate::{One, Prime128OffsetA7F7 as F, Ring, Zero};
+    use crate::{One, Prime128Offset6A23801F as F, Ring, Zero};
 
     #[test]
     fn recognizes_geometric_powers_including_degenerate_challenges() {

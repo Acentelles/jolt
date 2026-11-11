@@ -1,10 +1,10 @@
 #![cfg(feature = "solinas")]
 #![expect(clippy::unwrap_used, reason = "tests construct canonical fixtures")]
 
-use jolt_algebra::solinas::Prime128OffsetA7F7 as Field;
+use jolt_algebra::solinas::Prime128Offset6A23801F as Field;
 use jolt_algebra::CanonicalEncoding;
 
-const MODULUS: u128 = u128::MAX - (0xffff_a7f7 - 1);
+const MODULUS: u128 = u128::MAX - (0x6a23_801f - 1);
 
 #[test]
 fn word_canonical_tuple_boundaries_and_consumption() {

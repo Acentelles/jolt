@@ -24,24 +24,23 @@
 extern crate self as jolt_claims;
 
 mod claim_data;
-mod claims;
-mod formula_error;
 pub mod lattice;
-mod ops;
 pub mod protocols;
 pub mod r1cs;
-mod sumcheck;
-mod symbolic;
+#[cfg(test)]
+mod symbolic_tests;
 pub mod twist;
 
 pub use claim_data::{
     ChallengeDrawError, InputClaims, MissingOpeningValue, NoChallenges, NoInputs, NoOutputs,
     OutputClaims, SumcheckChallenges,
 };
-pub use claims::{challenge, constant, derived, opening, Expr, Source, Term};
+use jolt_claim_expr::formula_error;
+pub use jolt_claim_expr::{
+    challenge, constant, derived, opening, referenced_openings, Expr, Source, SumcheckDomain,
+    SymbolicSumcheck, Term,
+};
 pub use jolt_claims_derive::{InputClaims, OutputClaims, SumcheckChallenges};
-pub use sumcheck::SumcheckDomain;
-pub use symbolic::{referenced_openings, SymbolicSumcheck};
 
 #[cfg(feature = "immutable-recipes")]
 pub mod immutable_recipes;
@@ -61,3 +60,7 @@ macro_rules! immutable_recipe_items {
 
 #[cfg(all(feature = "immutable-recipes-record", not(target_arch = "riscv64")))]
 pub use jolt_claims_derive::record_generate;
+
+mod immutable_hooks;
+#[cfg(test)]
+mod symbolic_recipe_tests;
