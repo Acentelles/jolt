@@ -915,7 +915,7 @@ mod tests {
         };
         let mut words = Vec::new();
         assert_eq!(budget.push(&mut words, 7u64), Err(CaptureError::Capacity));
-        assert!(words.is_empty());
+        assert_eq!(words, [] as [u64; 0]);
         assert_eq!(words.capacity(), 0);
     }
 

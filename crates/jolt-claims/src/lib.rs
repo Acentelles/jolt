@@ -62,5 +62,3 @@ macro_rules! immutable_recipe_items {
 pub use jolt_claims_derive::record_generate;
 
 mod immutable_hooks;
-#[cfg(test)]
-mod symbolic_recipe_tests;

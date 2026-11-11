@@ -1,3 +1,5 @@
+#![expect(clippy::unwrap_used, reason = "literal shape fixtures must validate")]
+
 #[test]
 fn full_shape_key_distinguishes_order_payloads_and_affine_flag() {
     use super::{KeySink, KeyVisit};
