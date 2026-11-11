@@ -11,9 +11,7 @@ pub trait KeyVisit {
 
 impl KeyVisit for usize {
     fn visit(&self, sink: &mut dyn KeySink) -> bool {
-        u64::try_from(*self)
-            .ok()
-            .is_some_and(|word| sink.word(word))
+        u64::try_from(*self).is_ok_and(|word| sink.word(word))
     }
 }
 

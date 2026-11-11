@@ -28,5 +28,5 @@ fn canonical_bytes_default_big_endian_accepts_empty_encoding() {
     let value = LittleEndianBytes([]);
     let mut out = [];
     write_big_endian(&value, &mut out);
-    assert!(out.is_empty());
+    assert_eq!(out.as_slice(), []);
 }

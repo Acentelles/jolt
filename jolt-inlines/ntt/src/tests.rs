@@ -115,7 +115,7 @@ fn load_ntt(
         P as u64 | (u64::from(pinv as u32) << 32),
     ];
     for table in [psi, twiddles] {
-        for pair in table.chunks_exact(2) {
+        for pair in table.as_chunks::<2>().0 {
             words.push(u64::from(pair[0] as u32) | (u64::from(pair[1] as u32) << 32));
         }
     }
@@ -250,7 +250,7 @@ impl InlineSpec for PointwiseDot64 {
             .collect::<Vec<_>>();
         words.push(P as u64 | (u64::from(pinv as u32) << 32));
         for row in input.lhs.iter().chain(&input.rhs) {
-            for pair in row.chunks_exact(2) {
+            for pair in row.as_chunks::<2>().0 {
                 words.push(u64::from(pair[0] as u32) | (u64::from(pair[1] as u32) << 32));
             }
         }
